@@ -201,4 +201,4 @@ abu-chrome-extension/ # Chrome 扩展
 
 ## 许可证
 
-[Abu License](LICENSE) — 个人、教育、非商业用途免费使用。商业用途需获取授权，详见 [LICENSE](LICENSE)。
+[Abu License](LICENSE) — 个人、教育、非商业用途免费使用。使用需保留版权声明，禁止修改或删除。商业用途需获取授权，详见 [LICENSE](LICENSE)。
