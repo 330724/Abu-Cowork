@@ -28,7 +28,8 @@ async function executeHookCommand(command: string, skillDir: string): Promise<bo
       cwd: skillDir,
       background: false,
       timeout: 10,
-      sandbox: false,
+      sandbox: true,
+      extra_writable_paths: [skillDir],
     });
     return output.code === 0;
   } catch {

@@ -187,10 +187,45 @@ pub fn build_sandboxed_command(
         }
     }
 
-    // Non-sandboxed path (also used for non-macOS)
+    // Windows: PowerShell with optional ConstrainedLanguage sandbox
     #[cfg(target_os = "windows")]
     {
-        let _ = (cwd, extra_writable_paths, sandbox_enabled, network_proxy_port);
+        if sandbox_enabled {
+            let mut cmd = StdCommand::new("powershell");
+
+            let mut wrapped = String::with_capacity(command.len() + 256);
+
+            // ConstrainedLanguage mode: blocks .NET reflection, COM objects, Add-Type
+            wrapped.push_str(
+                "$ExecutionContext.SessionState.LanguageMode = 'ConstrainedLanguage'; "
+            );
+
+            // Execute user command
+            wrapped.push_str(command);
+
+            cmd.args([
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy", "Restricted",
+                "-Command", &wrapped,
+            ]);
+
+            // Network isolation via proxy
+            if let Some(port) = network_proxy_port {
+                let proxy_url = format!("http://127.0.0.1:{}", port);
+                cmd.env("HTTP_PROXY", &proxy_url);
+                cmd.env("HTTPS_PROXY", &proxy_url);
+                cmd.env("http_proxy", &proxy_url);
+                cmd.env("https_proxy", &proxy_url);
+                cmd.env("ALL_PROXY", &proxy_url);
+                cmd.env("NO_PROXY", "localhost,127.0.0.1,::1");
+                cmd.env("no_proxy", "localhost,127.0.0.1,::1");
+            }
+
+            return cmd;
+        }
+
+        let _ = (cwd, extra_writable_paths);
         let mut cmd = StdCommand::new("powershell");
         cmd.args(["-NoProfile", "-NonInteractive", "-Command", command]);
         return cmd;

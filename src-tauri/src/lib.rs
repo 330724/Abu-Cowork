@@ -87,7 +87,7 @@ async fn run_shell_command(
 ) -> Result<CommandOutput, String> {
     let is_background = background.unwrap_or(false);
     let timeout_secs = timeout.unwrap_or(30).min(300); // default 30s, max 300s
-    let is_sandboxed = sandbox_enabled.unwrap_or(false);
+    let is_sandboxed = sandbox_enabled.unwrap_or(true);
     let cmd_for_annotation = command.clone();
 
     async_runtime::spawn_blocking(move || {
@@ -101,7 +101,7 @@ async fn run_shell_command(
             &command,
             cwd.as_deref(),
             &extra_paths,
-            sandbox_enabled.unwrap_or(false),
+            sandbox_enabled.unwrap_or(true),
             proxy_port,
         );
 
@@ -315,7 +315,7 @@ async fn run_shell_command_streaming(
     network_isolation: Option<bool>,
 ) -> Result<CommandOutput, String> {
     let timeout_secs = timeout.unwrap_or(30).min(300);
-    let is_sandboxed_s = sandbox_enabled.unwrap_or(false);
+    let is_sandboxed_s = sandbox_enabled.unwrap_or(true);
     let cmd_for_annotation_s = command.clone();
 
     async_runtime::spawn_blocking(move || {
@@ -329,7 +329,7 @@ async fn run_shell_command_streaming(
             &command,
             cwd.as_deref(),
             &extra_paths,
-            sandbox_enabled.unwrap_or(false),
+            sandbox_enabled.unwrap_or(true),
             proxy_port,
         );
 
@@ -705,11 +705,43 @@ async fn mcp_write(
     Ok(())
 }
 
-/// Get environment variables by name
+/// Allowed environment variable name patterns for security.
+/// Only variables matching these prefixes/names can be read from the frontend.
+const ENV_VAR_ALLOWED_PREFIXES: &[&str] = &[
+    "HOME", "USER", "LANG", "LC_", "PATH", "SHELL", "TERM",
+    "TMPDIR", "XDG_",
+    // Common tool/runtime vars that MCP configs legitimately reference
+    "NODE_", "NPM_", "NVM_", "CARGO_", "RUSTUP_", "GOPATH", "GOROOT",
+    "JAVA_HOME", "PYTHON", "VIRTUAL_ENV", "CONDA_",
+    // API keys that users intentionally set for MCP server configs
+    "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "DEEPSEEK_API_KEY",
+    "GITHUB_TOKEN", "GITHUB_PERSONAL_TOKEN", "GH_TOKEN",
+    "TAVILY_API_KEY", "BRAVE_API_KEY", "SERP_API_KEY",
+    "FIRECRAWL_API_KEY", "EXA_API_KEY", "JINA_API_KEY",
+    // MCP / Abu specific
+    "ABU_", "MCP_", "CLAUDE_",
+];
+
+fn is_env_var_allowed(name: &str) -> bool {
+    ENV_VAR_ALLOWED_PREFIXES.iter().any(|prefix| {
+        if prefix.ends_with('_') {
+            // Prefix match (e.g., "LC_" matches "LC_ALL")
+            name.starts_with(prefix)
+        } else {
+            // Exact match
+            name == *prefix
+        }
+    })
+}
+
+/// Get environment variables by name (filtered by allowlist)
 #[tauri::command]
 fn get_env_vars(names: Vec<String>) -> HashMap<String, String> {
     let mut result = HashMap::new();
     for name in names {
+        if !is_env_var_allowed(&name) {
+            continue;
+        }
         if let Ok(val) = std::env::var(&name) {
             result.insert(name, val);
         }

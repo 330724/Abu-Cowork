@@ -237,9 +237,12 @@ export default function MCPSection({ showAddForm: externalShowAddForm, onAddForm
     }
   };
 
-  const handleRemoveServer = (name: string) => {
-    removeServer(name);
+  const handleRemoveServer = async (name: string) => {
+    // Clear selection first so the right panel stops showing stale data
     if (selected?.kind === 'server' && selected.name === name) setSelected(null);
+    // Disconnect before removing to avoid stale connected state
+    try { await disconnectServer(name); } catch { /* ignore */ }
+    removeServer(name);
   };
 
   const handleToggleConnection = async (entry: MCPServerEntry) => {
@@ -277,15 +280,15 @@ export default function MCPSection({ showAddForm: externalShowAddForm, onAddForm
     });
   };
 
-  // Status dot color helper
-  const statusDotClass = (entry: MCPServerEntry) => {
+  // Status icon color helper
+  const statusIconClass = (entry: MCPServerEntry) => {
     const { status } = entry;
     const isConn = connectingServer === entry.config.name;
-    if (status === 'reconnecting') return 'bg-orange-400 animate-pulse';
-    if (isConn || status === 'connecting') return 'bg-amber-400 animate-pulse';
-    if (status === 'connected') return 'bg-green-500';
-    if (status === 'error') return 'bg-red-400';
-    return 'bg-[#b5b0a6]';
+    if (status === 'reconnecting') return 'text-orange-400 animate-pulse';
+    if (isConn || status === 'connecting') return 'text-amber-400 animate-pulse';
+    if (status === 'connected') return 'text-green-500';
+    if (status === 'error') return 'text-red-400';
+    return 'text-[#888579]';
   };
 
   // Get selected server entry or template
@@ -303,9 +306,9 @@ export default function MCPSection({ showAddForm: externalShowAddForm, onAddForm
   return (
     <div className="flex h-full overflow-hidden">
       {/* Left: Server list */}
-      <div className="w-[260px] shrink-0 border-r border-[#e8e4dd]/60 flex flex-col overflow-hidden bg-[#faf8f5]">
+      <div className="w-[340px] shrink-0 border-r border-[#e8e4dd]/60 flex flex-col overflow-hidden bg-[#faf8f5]">
         {/* Header */}
-        <div className="shrink-0 px-3 pt-3 pb-2 border-b border-[#e8e4dd]/60">
+        <div className="shrink-0 px-4 pt-4 pb-3 border-b border-[#e8e4dd]/60">
           {showSearch ? (
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#656358]" />
@@ -323,7 +326,7 @@ export default function MCPSection({ showAddForm: externalShowAddForm, onAddForm
             </div>
           ) : (
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-[#29261b]">{t.toolbox.mcp}</span>
+              <span className="text-base font-semibold text-[#29261b]">{t.toolbox.mcp}</span>
               <div className="flex items-center gap-1">
                 <button onClick={() => setShowSearch(true)} className="p-1 text-[#888579] hover:text-[#29261b] transition-colors">
                   <Search className="h-3.5 w-3.5" />
@@ -336,12 +339,12 @@ export default function MCPSection({ showAddForm: externalShowAddForm, onAddForm
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto py-1">
+        <div className="flex-1 overflow-y-auto overlay-scroll py-2">
           {/* "我的" — user-added custom servers */}
           {customServers.length > 0 && (
             <div>
               <div
-                className="flex items-center gap-1.5 px-4 py-2 cursor-pointer text-[#888579] hover:text-[#29261b]"
+                className="flex items-center gap-1.5 px-5 py-2.5 cursor-pointer text-[#888579] hover:text-[#29261b]"
                 onClick={() => toggleCategory('my')}
               >
                 {collapsedCategories.has('my') ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -352,12 +355,12 @@ export default function MCPSection({ showAddForm: externalShowAddForm, onAddForm
                 return (
                   <div
                     key={entry.config.name}
-                    className={`flex items-center gap-2.5 pl-7 pr-3 py-2.5 cursor-pointer transition-colors ${
-                      isSelected ? 'bg-[#eae7e0]' : 'hover:bg-[#f0ede6]'
+                    className={`flex items-center gap-3 mx-2 pl-7 pr-3 py-2.5 mb-0.5 rounded-lg cursor-pointer transition-colors ${
+                      isSelected ? 'bg-[#f0ede6]' : 'hover:bg-[#f0ede6]/60'
                     }`}
                     onClick={() => setSelected({ kind: 'server', name: entry.config.name })}
                   >
-                    <div className={cn('h-2 w-2 rounded-full shrink-0', statusDotClass(entry))} />
+                    <Server className={cn('h-4 w-4 shrink-0', statusIconClass(entry))} />
                     <span className={`text-sm flex-1 truncate ${isSelected ? 'text-[#29261b] font-medium' : 'text-[#656358]'}`}>
                       {entry.config.name}
                     </span>
@@ -371,7 +374,7 @@ export default function MCPSection({ showAddForm: externalShowAddForm, onAddForm
           {exampleItems.length > 0 && (
             <div>
               <div
-                className="flex items-center gap-1.5 px-4 py-2 cursor-pointer text-[#888579] hover:text-[#29261b]"
+                className="flex items-center gap-1.5 px-5 py-2.5 cursor-pointer text-[#888579] hover:text-[#29261b]"
                 onClick={() => toggleCategory('examples')}
               >
                 {collapsedCategories.has('examples') ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -384,12 +387,12 @@ export default function MCPSection({ showAddForm: externalShowAddForm, onAddForm
                   return (
                     <div
                       key={entry.config.name}
-                      className={`flex items-center gap-2.5 pl-7 pr-3 py-2.5 cursor-pointer transition-colors ${
-                        isSelected ? 'bg-[#eae7e0]' : 'hover:bg-[#f0ede6]'
+                      className={`flex items-center gap-3 mx-2 pl-7 pr-3 py-2.5 mb-0.5 rounded-lg cursor-pointer transition-colors ${
+                        isSelected ? 'bg-[#f0ede6]' : 'hover:bg-[#f0ede6]/60'
                       }`}
                       onClick={() => setSelected({ kind: 'server', name: entry.config.name })}
                     >
-                      <div className={cn('h-2 w-2 rounded-full shrink-0', statusDotClass(entry))} />
+                      <Server className={cn('h-4 w-4 shrink-0', statusIconClass(entry))} />
                       <span className={`text-sm flex-1 truncate ${isSelected ? 'text-[#29261b] font-medium' : 'text-[#656358]'}`}>
                         {entry.config.name}
                       </span>
@@ -401,12 +404,12 @@ export default function MCPSection({ showAddForm: externalShowAddForm, onAddForm
                   return (
                     <div
                       key={tmpl.id}
-                      className={`flex items-center gap-2.5 pl-7 pr-3 py-2.5 cursor-pointer transition-colors ${
-                        isSelected ? 'bg-[#eae7e0]' : 'hover:bg-[#f0ede6]'
+                      className={`flex items-center gap-3 mx-2 pl-7 pr-3 py-2.5 mb-0.5 rounded-lg cursor-pointer transition-colors ${
+                        isSelected ? 'bg-[#f0ede6]' : 'hover:bg-[#f0ede6]/60'
                       }`}
                       onClick={() => setSelected({ kind: 'template', id: tmpl.id })}
                     >
-                      <Server className="h-3.5 w-3.5 shrink-0 text-[#b5b0a6]" />
+                      <Server className="h-4 w-4 shrink-0 text-[#b5b0a6]" />
                       <span className={`text-sm flex-1 truncate ${isSelected ? 'text-[#29261b] font-medium' : 'text-[#b5b0a6]'}`}>
                         {tmpl.name}
                       </span>
@@ -424,7 +427,7 @@ export default function MCPSection({ showAddForm: externalShowAddForm, onAddForm
       </div>
 
       {/* Right: Detail panel */}
-      <div className="flex-1 overflow-y-auto bg-white">
+      <div className="flex-1 overflow-y-auto overlay-scroll bg-white">
         {selectedServer ? (
           <ServerDetail
             entry={selectedServer}
@@ -576,12 +579,12 @@ function ServerDetail({
     : 'text-[#888579]';
 
   return (
-    <div className="p-6">
+    <div className="px-6 py-6">
       {/* Header: Name + Status + Actions */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
           <Server className="h-5 w-5 text-[#888579]" />
-          <h2 className="text-lg font-semibold text-[#29261b]">{config.name}</h2>
+          <h2 className="text-xl font-semibold text-[#29261b]">{config.name}</h2>
           <span className={cn('text-xs font-medium', statusColor)}>{statusLabel}</span>
         </div>
         <div className="flex items-center gap-1">
@@ -667,12 +670,12 @@ function TemplateDetail({
   const hasSetupHint = !!template.setupHint;
 
   return (
-    <div className="p-6">
+    <div className="px-6 py-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
           <Server className="h-5 w-5 text-[#b5b0a6]" />
-          <h2 className="text-lg font-semibold text-[#29261b]">{template.name}</h2>
+          <h2 className="text-xl font-semibold text-[#29261b]">{template.name}</h2>
           {isHttp && <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-600">HTTP</span>}
         </div>
         <button onClick={onInstall} disabled={isInstalling}

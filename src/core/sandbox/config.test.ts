@@ -27,9 +27,15 @@ describe('sandbox/config', () => {
       expect(isSandboxEnabled()).toBe(false);
     });
 
-    it('returns false on Windows regardless of setting', () => {
+    it('returns true on Windows when sandboxEnabled is true', () => {
       mockPlatform = 'windows';
       useSettingsStore.setState({ sandboxEnabled: true });
+      expect(isSandboxEnabled()).toBe(true);
+    });
+
+    it('returns false on Windows when sandboxEnabled is false', () => {
+      mockPlatform = 'windows';
+      useSettingsStore.setState({ sandboxEnabled: false });
       expect(isSandboxEnabled()).toBe(false);
     });
 

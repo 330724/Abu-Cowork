@@ -163,6 +163,9 @@ const WIN_SYSTEM_PATHS_WRITE_BLOCKED = [
   'C:/Windows/System32',
   'C:/Program Files',
   'C:/Program Files (x86)',
+  'C:/ProgramData/Microsoft',
+  'C:/Recovery',
+  'C:/Boot',
 ];
 
 /**
@@ -244,16 +247,20 @@ function normalizePath(path: string): string {
       resolved.push(part);
     }
   }
-  return prefix + '/' + resolved.join('/');
+  let result = prefix + '/' + resolved.join('/');
+  // Windows: normalize to lowercase for case-insensitive NTFS matching
+  if (isWindows()) {
+    result = result.toLowerCase();
+  }
+  return result;
 }
 
 /**
  * Normalize a path for comparison purposes.
- * On Windows, converts to lowercase for case-insensitive matching (NTFS is case-insensitive).
+ * Case normalization for Windows is already handled in normalizePath().
  */
 function normalizeForCompare(path: string): string {
-  const normalized = normalizePath(path);
-  return isWindows() ? normalized.toLowerCase() : normalized;
+  return normalizePath(path);
 }
 
 /**

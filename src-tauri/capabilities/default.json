@@ -26,7 +26,10 @@
         { "path": "$DOCUMENT/**" },
         { "path": "$DOWNLOAD/**" },
         { "path": "$RESOURCE/**" },
-        { "path": "/**" }
+        { "path": "/tmp/**" },
+        { "path": "/private/tmp/**" },
+        { "path": "/Volumes/**" },
+        { "path": "$TEMP/**" }
       ]
     },
     {
@@ -38,7 +41,10 @@
         { "path": "$DOCUMENT/**" },
         { "path": "$DOWNLOAD/**" },
         { "path": "$RESOURCE/**" },
-        { "path": "/**" }
+        { "path": "/tmp/**" },
+        { "path": "/private/tmp/**" },
+        { "path": "/Volumes/**" },
+        { "path": "$TEMP/**" }
       ]
     },
     {
@@ -49,7 +55,9 @@
         { "path": "$DESKTOP/**" },
         { "path": "$DOCUMENT/**" },
         { "path": "$DOWNLOAD/**" },
-        { "path": "/**" }
+        { "path": "/tmp/**" },
+        { "path": "/private/tmp/**" },
+        { "path": "$TEMP/**" }
       ]
     },
     {
@@ -60,7 +68,9 @@
         { "path": "$DESKTOP/**" },
         { "path": "$DOCUMENT/**" },
         { "path": "$DOWNLOAD/**" },
-        { "path": "/**" }
+        { "path": "/tmp/**" },
+        { "path": "/private/tmp/**" },
+        { "path": "$TEMP/**" }
       ]
     },
     {
@@ -72,7 +82,10 @@
         { "path": "$DOCUMENT/**" },
         { "path": "$DOWNLOAD/**" },
         { "path": "$RESOURCE/**" },
-        { "path": "/**" }
+        { "path": "/tmp/**" },
+        { "path": "/private/tmp/**" },
+        { "path": "/Volumes/**" },
+        { "path": "$TEMP/**" }
       ]
     },
     {
@@ -84,7 +97,10 @@
         { "path": "$DOCUMENT/**" },
         { "path": "$DOWNLOAD/**" },
         { "path": "$RESOURCE/**" },
-        { "path": "/**" }
+        { "path": "/tmp/**" },
+        { "path": "/private/tmp/**" },
+        { "path": "/Volumes/**" },
+        { "path": "$TEMP/**" }
       ]
     },
     {
@@ -95,7 +111,8 @@
         { "path": "$HOME/.abu/**" },
         { "path": "$DESKTOP/**" },
         { "path": "$DOCUMENT/**" },
-        { "path": "$DOWNLOAD/**" }
+        { "path": "$DOWNLOAD/**" },
+        { "path": "$TEMP/**" }
       ]
     },
     {

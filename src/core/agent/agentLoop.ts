@@ -81,6 +81,12 @@ let pendingConfirmation: {
   resolve: (confirmed: boolean) => void;
 } | null = null;
 
+// Queue for command confirmations — prevents overwriting when multiple dangerous commands fire in sequence
+const confirmationQueue: Array<{
+  info: ConfirmationInfo;
+  resolve: (confirmed: boolean) => void;
+}> = [];
+
 // Subscribers for command confirmation state changes
 // NOTE: Listeners are auto-cleaned via the unsubscribe function returned by subscribeToCommandConfirmation,
 // which is used as the cleanup callback in useSyncExternalStore. No manual cleanup needed.
@@ -107,11 +113,36 @@ export function getPendingCommandConfirmation() {
 }
 
 /**
- * Resolve the pending command confirmation
+ * Resolve the pending command confirmation and process next in queue
  */
 export function resolveCommandConfirmation(confirmed: boolean) {
   if (pendingConfirmation) {
     pendingConfirmation.resolve(confirmed);
+    pendingConfirmation = null;
+
+    // Process next queued confirmation
+    processNextConfirmation();
+  }
+}
+
+function processNextConfirmation() {
+  if (confirmationQueue.length > 0) {
+    pendingConfirmation = confirmationQueue.shift()!;
+  }
+  notifyConfirmationListeners();
+}
+
+/**
+ * Drain the confirmation queue — reject all pending confirmations.
+ * Called on abort to prevent stale confirmation dialogs.
+ */
+export function drainConfirmationQueue() {
+  while (confirmationQueue.length > 0) {
+    const req = confirmationQueue.shift()!;
+    req.resolve(false);
+  }
+  if (pendingConfirmation) {
+    pendingConfirmation.resolve(false);
     pendingConfirmation = null;
     notifyConfirmationListeners();
   }
@@ -119,14 +150,18 @@ export function resolveCommandConfirmation(confirmed: boolean) {
 
 /**
  * Request confirmation for a dangerous command
- * Returns a promise that resolves when user confirms or cancels
+ * Returns a promise that resolves when user confirms or cancels.
+ * If another confirmation is already pending, this request is queued.
  */
 async function requestCommandConfirmation(info: ConfirmationInfo): Promise<boolean> {
   return new Promise((resolve) => {
-    pendingConfirmation = { info, resolve };
-    notifyConfirmationListeners();
-    // The UI will pick this up via useSyncExternalStore
-    // and show CommandConfirmDialog
+    if (pendingConfirmation) {
+      // Queue instead of overwriting
+      confirmationQueue.push({ info, resolve });
+    } else {
+      pendingConfirmation = { info, resolve };
+      notifyConfirmationListeners();
+    }
   });
 }
 
@@ -1343,7 +1378,7 @@ export async function runAgentLoop(conversationId: string, userMessage: string, 
         // Clear loop context and any pending confirmation/permission dialogs
         currentLoopContext = null;
         clearInputQueue(conversationId);
-        if (getPendingCommandConfirmation()) resolveCommandConfirmation(false);
+        drainConfirmationQueue();
         drainFilePermissionQueue();
 
         chatStore.cancelStreaming(conversationId);

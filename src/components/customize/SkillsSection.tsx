@@ -7,7 +7,7 @@ import { skillTemplates } from '@/data/marketplace/skills';
 import { skillLoader } from '@/core/skill/loader';
 import SkillEditor from './SkillEditor';
 import { Toggle } from '@/components/ui/toggle';
-import { Trash2, File, Folder, ChevronDown, ChevronRight, Pencil, MoreHorizontal, Eye, Code, Info, MessageCircle, Search, Plus, X, Wand2, PenLine, Upload, Download } from 'lucide-react';
+import { Trash2, File, FileText, Folder, ChevronDown, ChevronRight, Pencil, MoreHorizontal, Eye, Code, Info, MessageCircle, Search, Plus, X, Wand2, PenLine, Upload, Download } from 'lucide-react';
 import { remove } from '@tauri-apps/plugin-fs';
 import { save as saveDialog } from '@tauri-apps/plugin-dialog';
 import { writeFile } from '@tauri-apps/plugin-fs';
@@ -78,18 +78,18 @@ function FileTreeItem({
   onFileClick?: (path: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const basePl = 42 + depth * 16;
+  const ml = 52 + depth * 16;
 
   if (node.isDir) {
     return (
-      <div>
+      <div className="mb-0.5">
         <div
-          className="flex items-center gap-2 py-1.5 cursor-pointer hover:bg-[#f0ede6] text-[#888579] hover:text-[#29261b] text-[13px]"
-          style={{ paddingLeft: basePl }}
+          className="flex items-center gap-2 py-1.5 mx-2 px-3 rounded-md cursor-pointer hover:bg-[#f0ede6]/60 text-[#888579] hover:text-[#29261b] text-[13px] transition-colors"
+          style={{ marginLeft: ml }}
           onClick={() => setExpanded(!expanded)}
         >
           {expanded ? <ChevronDown className="h-3 w-3 shrink-0" /> : <ChevronRight className="h-3 w-3 shrink-0" />}
-          <Folder className="h-3.5 w-3.5 shrink-0 text-[#d97757]/70" />
+          <Folder className="h-3.5 w-3.5 shrink-0 text-[#888579]" />
           <span className="truncate">{node.name}</span>
         </div>
         {expanded && node.children.map((child) => (
@@ -102,13 +102,12 @@ function FileTreeItem({
   const isActive = selectedFile === node.path;
   return (
     <div
-      className={`flex items-center gap-2 py-1.5 cursor-pointer text-[13px] transition-colors ${
-        isActive ? 'bg-[#eae7e0] text-[#29261b]' : 'text-[#888579] hover:bg-[#f0ede6] hover:text-[#29261b]'
+      className={`flex items-center gap-2 py-1.5 mx-2 px-3 mb-0.5 rounded-md cursor-pointer text-[13px] transition-colors ${
+        isActive ? 'bg-[#f0ede6] text-[#29261b]' : 'text-[#888579] hover:bg-[#f0ede6]/60 hover:text-[#29261b]'
       }`}
-      style={{ paddingLeft: basePl + 16 }}
+      style={{ marginLeft: ml }}
       onClick={() => onFileClick?.(node.path)}
     >
-      <File className="h-3.5 w-3.5 shrink-0 opacity-50" />
       <span className="truncate">{node.name}</span>
     </div>
   );
@@ -307,14 +306,14 @@ export default function SkillsSection({ manualCreateTrigger, onAICreate, onManua
     const isRowActive = isSelected && !selectedFile && !isExpanded;
 
     return (
-      <div key={skill.name}>
+      <div key={skill.name} className="mb-0.5">
         <div
-          className={`flex items-center gap-2.5 pl-7 pr-3 py-2.5 cursor-pointer transition-colors ${
-            isRowActive ? 'bg-[#eae7e0]' : 'hover:bg-[#f0ede6]'
+          className={`flex items-center gap-3 mx-2 pl-7 pr-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
+            isRowActive ? 'bg-[#f0ede6]' : 'hover:bg-[#f0ede6]/60'
           }`}
           onClick={() => handleSkillClick(skill.name)}
         >
-          <File className={`h-4 w-4 shrink-0 ${!isEnabled ? 'text-[#b5b0a6]' : 'text-[#888579]'}`} />
+          <FileText className={`h-4 w-4 shrink-0 ${!isEnabled ? 'text-[#b5b0a6]' : 'text-[#888579]'}`} />
           <span className={`text-sm flex-1 truncate ${
             !isEnabled ? 'text-[#b5b0a6]' : isSelected ? 'text-[#29261b] font-medium' : 'text-[#656358]'
           }`}>
@@ -328,17 +327,16 @@ export default function SkillsSection({ manualCreateTrigger, onAICreate, onManua
           </div>
         </div>
         {isExpanded && (
-          <div className="pb-1">
+          <div className="py-0.5">
             <div
-              className={`flex items-center gap-2 py-1.5 cursor-pointer text-[13px] transition-colors ${
+              className={`flex items-center gap-2 py-1.5 mx-2 px-3 mb-0.5 rounded-md cursor-pointer text-[13px] transition-colors ${
                 selectedSkill === skill.name && !selectedFile
-                  ? 'bg-[#eae7e0] text-[#29261b]'
-                  : 'text-[#888579] hover:bg-[#f0ede6] hover:text-[#29261b]'
+                  ? 'bg-[#f0ede6] text-[#29261b]'
+                  : 'text-[#888579] hover:bg-[#f0ede6]/60 hover:text-[#29261b]'
               }`}
-              style={{ paddingLeft: 56 }}
+              style={{ marginLeft: 52 }}
               onClick={() => handleFileClick(skill.name, 'SKILL.md')}
             >
-              <File className="h-3.5 w-3.5 shrink-0 opacity-50" />
               <span>SKILL.md</span>
             </div>
             {fileTree.map((node) => (
@@ -369,9 +367,9 @@ export default function SkillsSection({ manualCreateTrigger, onAICreate, onManua
   return (
     <div className="flex h-full overflow-hidden">
       {/* Left: Skill list with file trees */}
-      <div className="w-[260px] shrink-0 border-r border-[#e8e4dd]/60 flex flex-col overflow-hidden bg-[#faf8f5]">
+      <div className="w-[340px] shrink-0 border-r border-[#e8e4dd]/60 flex flex-col overflow-hidden bg-[#faf8f5]">
         {/* Header: Title + Search + Create */}
-        <div className="shrink-0 px-3 pt-3 pb-2 border-b border-[#e8e4dd]/60">
+        <div className="shrink-0 px-4 pt-4 pb-3 border-b border-[#e8e4dd]/60">
           {showSearch ? (
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#656358]" />
@@ -394,7 +392,7 @@ export default function SkillsSection({ manualCreateTrigger, onAICreate, onManua
             </div>
           ) : (
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-[#29261b]">{t.toolbox.skills}</span>
+              <span className="text-base font-semibold text-[#29261b]">{t.toolbox.skills}</span>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setShowSearch(true)}
@@ -445,7 +443,7 @@ export default function SkillsSection({ manualCreateTrigger, onAICreate, onManua
             </div>
           )}
         </div>
-        <div className="flex-1 overflow-y-auto py-1">
+        <div className="flex-1 overflow-y-auto overlay-scroll py-2">
           {filteredSkills.length === 0 ? (
             <div className="text-xs text-[#888579] py-8 text-center">{t.toolbox.noSkillsFound}</div>
           ) : (
@@ -454,7 +452,7 @@ export default function SkillsSection({ manualCreateTrigger, onAICreate, onManua
               {userSkills.length > 0 && (
                 <div>
                   <div
-                    className="flex items-center gap-1.5 px-4 py-2 cursor-pointer text-[#888579] hover:text-[#29261b]"
+                    className="flex items-center gap-1.5 px-5 py-2.5 cursor-pointer text-[#888579] hover:text-[#29261b]"
                     onClick={() => toggleCategory('my')}
                   >
                     {collapsedCategories.has('my')
@@ -470,7 +468,7 @@ export default function SkillsSection({ manualCreateTrigger, onAICreate, onManua
               {exampleSkills.length > 0 && (
                 <div>
                   <div
-                    className="flex items-center gap-1.5 px-4 py-2 cursor-pointer text-[#888579] hover:text-[#29261b]"
+                    className="flex items-center gap-1.5 px-5 py-2.5 cursor-pointer text-[#888579] hover:text-[#29261b]"
                     onClick={() => toggleCategory('examples')}
                   >
                     {collapsedCategories.has('examples')
@@ -488,11 +486,11 @@ export default function SkillsSection({ manualCreateTrigger, onAICreate, onManua
       </div>
 
       {/* Right: Skill detail or file content */}
-      <div className="flex-1 overflow-y-auto bg-white">
+      <div className="flex-1 overflow-y-auto overlay-scroll bg-white">
         {selected ? (
           selectedFile ? (
             /* Show selected file content */
-            <div className="p-6">
+            <div className="px-6 py-6">
               <div className="flex items-center gap-2 mb-4">
                 <button
                   className="text-xs text-[#888579] hover:text-[#29261b] transition-colors"
@@ -519,10 +517,10 @@ export default function SkillsSection({ manualCreateTrigger, onAICreate, onManua
             </div>
           ) : (
             /* Show skill detail */
-            <div className="p-6">
+            <div className="px-6 py-6">
               {/* Row 1: Name + Toggle + Menu */}
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold text-[#29261b]">{selected.name}</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-[#29261b]">{selected.name}</h2>
                 <div className="flex items-center gap-2">
                   <Toggle
                     checked={!disabledSet.has(selected.name)}
@@ -587,38 +585,38 @@ export default function SkillsSection({ manualCreateTrigger, onAICreate, onManua
               </div>
 
               {/* Row 2: Added by */}
-              <div className="mb-4">
-                <div className="text-xs text-[#888579]">{t.toolbox.skillAddedBy}</div>
-                <div className="text-sm text-[#29261b]">{isSystemSkill(selected) ? 'Anthropic' : 'User'}</div>
+              <div className="mb-5">
+                <div className="text-xs text-[#888579] mb-0.5">{t.toolbox.skillAddedBy}</div>
+                <div className="text-sm font-medium text-[#29261b]">{isSystemSkill(selected) ? 'Anthropic' : 'User'}</div>
               </div>
 
               {/* Description */}
-              <div className="flex items-center gap-1 mb-1">
+              <div className="flex items-center gap-1 mb-1.5">
                 <span className="text-xs text-[#888579]">Description</span>
                 <Info className="h-3 w-3 text-[#888579]/60" />
               </div>
-              <p className="text-sm text-[#29261b] mb-5">{selected.description}</p>
+              <p className="text-sm text-[#29261b] leading-relaxed mb-7">{selected.description}</p>
 
               {/* Content area: License + SKILL.md with preview/source toggle */}
               <div className="border border-[#e8e4dd] rounded-lg overflow-hidden">
                 {/* Toggle bar */}
-                <div className="flex items-center justify-end gap-1 px-3 py-2 bg-[#faf8f5] border-b border-[#e8e4dd]/60">
+                <div className="flex items-center justify-end gap-1.5 px-4 py-2.5 bg-[#faf8f5] border-b border-[#e8e4dd]/60">
                   <button
                     onClick={() => setContentViewMode('preview')}
-                    className={`p-1 rounded transition-colors ${contentViewMode === 'preview' ? 'text-[#29261b] bg-[#eae7e0]' : 'text-[#888579] hover:text-[#29261b]'}`}
+                    className={`p-1.5 rounded transition-colors ${contentViewMode === 'preview' ? 'text-[#29261b] bg-[#eae7e0]' : 'text-[#888579] hover:text-[#29261b]'}`}
                     title="Preview"
                   >
-                    <Eye className="h-3.5 w-3.5" />
+                    <Eye className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => setContentViewMode('source')}
-                    className={`p-1 rounded transition-colors ${contentViewMode === 'source' ? 'text-[#29261b] bg-[#eae7e0]' : 'text-[#888579] hover:text-[#29261b]'}`}
+                    className={`p-1.5 rounded transition-colors ${contentViewMode === 'source' ? 'text-[#29261b] bg-[#eae7e0]' : 'text-[#888579] hover:text-[#29261b]'}`}
                     title="Source"
                   >
-                    <Code className="h-3.5 w-3.5" />
+                    <Code className="h-4 w-4" />
                   </button>
                 </div>
-                <div className="px-5 py-4 bg-[#faf8f5]">
+                <div className="px-6 py-5 bg-[#faf8f5]">
                   {contentViewMode === 'preview' ? (
                     <MarkdownRenderer content={selected.content} />
                   ) : (

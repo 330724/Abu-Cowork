@@ -105,24 +105,43 @@ const readFileTool: ToolDefinition = {
     try {
       // PDF files: extract text instead of returning raw binary
       if (filePath.toLowerCase().endsWith('.pdf')) {
+        // Strategy 1: pdftotext (macOS/Linux — fast, native)
+        if (!isWindows()) {
+          try {
+            const output = await invoke<CommandOutput>('run_shell_command', {
+              command: `pdftotext "${filePath}" -`,
+              cwd: null,
+              background: false,
+              timeout: 30,
+            });
+            if (output.code === 0 && output.stdout.trim()) {
+              return output.stdout;
+            }
+          } catch { /* fall through to Python */ }
+        }
+
+        // Strategy 2: Python pdfplumber (cross-platform)
         try {
+          const pyBin = isWindows() ? 'python' : 'python3';
+          const escapedPath = isWindows()
+            ? filePath.replace(/'/g, "''")
+            : filePath.replace(/'/g, "'\\''");
+          const pyCmd = `${pyBin} -c "import pdfplumber; pdf=pdfplumber.open('${escapedPath}'); print('\\n'.join(p.extract_text() or '' for p in pdf.pages)); pdf.close()"`;
           const output = await invoke<CommandOutput>('run_shell_command', {
-            command: `pdftotext "${filePath}" -`,
+            command: pyCmd,
             cwd: null,
             background: false,
             timeout: 30,
-            sandboxEnabled: false,
-            extraWritablePaths: [],
-            networkIsolation: false,
           });
           if (output.code === 0 && output.stdout.trim()) {
             return output.stdout;
           }
-          // pdftotext not available or failed, fall through to hint
-          return `Error: Cannot read PDF as text. Use run_command to extract text, e.g.: python3 -c "import pdfplumber; pdf=pdfplumber.open('${filePath}'); print('\\n'.join(p.extract_text() or '' for p in pdf.pages))"`;
-        } catch {
-          return `Error: Cannot read PDF as text. Use run_command to extract text with pdftotext or pdfplumber.`;
-        }
+        } catch { /* fall through to hint */ }
+
+        // Strategy 3: User hint
+        return isWindows()
+          ? 'Error: Cannot read PDF as text. Please install Python and run: pip install pdfplumber'
+          : 'Error: Cannot read PDF as text. Install pdftotext (brew install poppler) or: pip3 install pdfplumber';
       }
 
       const content = await readTextFile(filePath);

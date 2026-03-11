@@ -1,22 +1,23 @@
 /**
  * Sandbox configuration — determines whether OS-level sandboxing is enabled.
  * On macOS, uses Seatbelt (sandbox-exec) to restrict shell command file access.
+ * On Windows, uses PowerShell ConstrainedLanguage mode + ExecutionPolicy Restricted.
  * On other platforms, returns false (no OS-level sandbox available).
  */
 
-import { isMacOS } from '@/utils/platform';
+import { isMacOS, isWindows } from '@/utils/platform';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { invoke } from '@tauri-apps/api/core';
 
 /** Whether OS-level sandbox should be enabled for shell commands */
 export function isSandboxEnabled(): boolean {
-  if (!isMacOS()) return false;
+  if (!isMacOS() && !isWindows()) return false;
   return useSettingsStore.getState().sandboxEnabled;
 }
 
 /** Whether network isolation (proxy-based domain whitelist) is enabled */
 export function isNetworkIsolationEnabled(): boolean {
-  if (!isMacOS()) return false;
+  if (!isMacOS() && !isWindows()) return false;
   const state = useSettingsStore.getState();
   return state.sandboxEnabled && state.networkIsolationEnabled;
 }
@@ -25,7 +26,7 @@ let proxyStarted = false;
 
 /** Start the network proxy if network isolation is enabled. Call once at app init. */
 export async function initNetworkProxy(): Promise<void> {
-  if (proxyStarted || !isMacOS()) return;
+  if (proxyStarted || (!isMacOS() && !isWindows())) return;
 
   const state = useSettingsStore.getState();
   if (!state.networkIsolationEnabled) return;

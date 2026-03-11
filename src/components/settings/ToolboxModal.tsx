@@ -189,19 +189,19 @@ export default function ToolboxView() {
   return (
     <div className="h-full bg-[#faf8f5] flex">
       {/* Left Navigation - includes back button */}
-      <nav className="w-[180px] shrink-0 border-r border-[#e8e4dd] flex flex-col">
+      <nav className="w-[260px] shrink-0 border-r border-[#e8e4dd] flex flex-col">
         {/* Back button + Title */}
-        <div className="px-4 pt-4 pb-3">
+        <div className="px-5 pt-5 pb-4">
           <button
             onClick={closeToolbox}
-            className="flex items-center gap-2 text-sm text-[#29261b] hover:text-[#656358] transition-colors"
+            className="flex items-center gap-2.5 text-sm text-[#29261b] hover:text-[#656358] transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="text-base font-semibold">{t.toolbox.title}</span>
           </button>
         </div>
         {/* Nav items */}
-        <div className="px-3 space-y-1">
+        <div className="px-3 space-y-0.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeToolboxTab === item.id;
@@ -210,14 +210,14 @@ export default function ToolboxView() {
                 key={item.id}
                 onClick={() => setActiveToolboxTab(item.id)}
                 className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left',
+                  'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-left',
                   isActive
                     ? 'bg-white text-[#29261b] shadow-sm'
                     : 'text-[#656358] hover:text-[#29261b] hover:bg-white/50'
                 )}
               >
                 <Icon className={cn(
-                  'h-4 w-4 shrink-0',
+                  'h-[18px] w-[18px] shrink-0',
                   isActive ? 'text-[#d97757]' : 'text-[#888579]'
                 )} />
                 <span>{item.label}</span>

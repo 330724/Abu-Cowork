@@ -38,8 +38,9 @@ pub struct MacPermissions {
     pub accessibility: bool,
 }
 
-/// Check macOS Screen Recording and Accessibility permissions.
-/// On non-macOS, returns true for both.
+/// Check Screen Recording and Accessibility permissions.
+/// On macOS: uses native APIs. On Windows: checks UAC elevation.
+/// On other platforms: returns true for both.
 #[tauri::command]
 pub fn check_macos_permissions() -> MacPermissions {
     #[cfg(target_os = "macos")]
@@ -48,7 +49,20 @@ pub fn check_macos_permissions() -> MacPermissions {
         let accessibility = unsafe { AXIsProcessTrusted() };
         MacPermissions { screen_recording, accessibility }
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "windows")]
+    {
+        // Windows doesn't require explicit screen recording permission.
+        // Accessibility (controlling other windows) works best with elevated privileges.
+        use std::process::Command as StdCommand;
+        let is_elevated = StdCommand::new("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command",
+                "([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)"])
+            .output()
+            .map(|o| String::from_utf8_lossy(&o.stdout).trim() == "True")
+            .unwrap_or(false);
+        MacPermissions { screen_recording: true, accessibility: is_elevated }
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         MacPermissions { screen_recording: true, accessibility: true }
     }

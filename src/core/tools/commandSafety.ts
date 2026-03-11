@@ -50,15 +50,27 @@ function hasCommandInjection(command: string): { injected: boolean; reason: stri
     { pattern: /\|\|\s*rm\s/, reason: '检测到命令注入: || 后跟 rm' },
     { pattern: /\$\(.*rm\s/, reason: '检测到命令替换中的 rm' },
     { pattern: /`.*rm\s.*`/, reason: '检测到反引号中的 rm' },
+    { pattern: /`[^`]*`/, reason: '检测到反引号命令替换，可能隐藏恶意命令' },
     { pattern: /;\s*sudo\s/, reason: '检测到命令注入: 分号后跟 sudo' },
     { pattern: /\|\s*sudo\s/, reason: '检测到命令注入: 管道后跟 sudo' },
     { pattern: /eval\s/, reason: '检测到 eval 命令，可能执行任意代码' },
+    { pattern: /\bexec\s/, reason: '检测到 exec 命令，可能替换当前进程' },
     { pattern: /source\s+\/dev\/tcp/, reason: '检测到网络反弹 shell' },
+    { pattern: /\bsource\s+<\(/, reason: '检测到 process substitution 注入' },
     { pattern: /bash\s+-i/, reason: '检测到交互式 bash，可能是反弹 shell' },
     { pattern: /nc\s+.*-e/, reason: '检测到 netcat 反弹 shell' },
     { pattern: /python.*-c.*socket/, reason: '检测到 Python 反弹 shell' },
+    { pattern: /python.*-c.*os\.system/, reason: '检测到 Python 执行系统命令' },
+    { pattern: /python.*-c.*subprocess/, reason: '检测到 Python subprocess 调用' },
+    { pattern: /perl.*-e.*system/, reason: '检测到 Perl 执行系统命令' },
+    { pattern: /ruby.*-e.*system/, reason: '检测到 Ruby 执行系统命令' },
     { pattern: /\$\{?IFS\}?/, reason: '检测到 $IFS 变量替换，可能用于绕过安全检查' },
     { pattern: /\{[a-z]+,/, reason: '检测到 bash 花括号展开，可能用于绕过安全检查' },
+    { pattern: /\$\{[^}]*[`$]/, reason: '检测到嵌套变量替换，可能用于绕过安全检查' },
+    { pattern: />\s*\/dev\/tcp\//, reason: '检测到 /dev/tcp 网络重定向' },
+    { pattern: /\|\s*base64\s+-d\s*\|/, reason: '检测到 base64 解码管道执行' },
+    { pattern: /echo\s+.*\|\s*(ba)?sh/, reason: '检测到 echo 管道到 shell 执行' },
+    { pattern: /printf\s+.*\|\s*(ba)?sh/, reason: '检测到 printf 管道到 shell 执行' },
   ];
 
   for (const { pattern, reason } of injectionPatterns) {
@@ -101,11 +113,22 @@ const WIN_DANGEROUS_PATTERNS: Record<Exclude<DangerLevel, 'safe'>, Array<{ patte
     { pattern: /bcdedit/i, reason: '此命令会修改系统引导配置' },
     { pattern: /cipher\s+\/w/i, reason: '此命令会安全擦除磁盘空闲空间' },
     { pattern: />\s*.*\\Microsoft\.PowerShell_profile\.ps1/i, reason: '禁止写入 PowerShell 配置文件' },
+    { pattern: /rundll32\s+/i, reason: 'rundll32 可执行任意 DLL 代码' },
+    { pattern: /regsvcs\s+/i, reason: 'regsvcs 可能用于 UAC 绕过' },
+    { pattern: /regasm\s+/i, reason: 'regasm 可能用于代码执行绕过' },
+    { pattern: /InstallUtil\s+/i, reason: 'InstallUtil 可能用于代码执行' },
+    { pattern: /mavinject\s+/i, reason: 'mavinject 可进行 DLL 注入' },
+    { pattern: /mshta\s+vbscript:/i, reason: 'mshta 内联 VBScript 执行' },
+    { pattern: /mshta\s+javascript:/i, reason: 'mshta 内联 JavaScript 执行' },
+    { pattern: /fodhelper/i, reason: 'fodhelper 可用于 UAC 绕过' },
+    { pattern: /certutil\s+.*-encode/i, reason: 'certutil 编码可用于隐藏恶意文件' },
   ],
   danger: [
     { pattern: /del\s+\/s\b/i, reason: '递归删除命令，可能导致数据丢失' },
     { pattern: /rmdir\s+\/s\b/i, reason: '递归删除目录，可能导致数据丢失' },
     { pattern: /reg\s+delete\b/i, reason: '删除注册表项，可能影响系统稳定' },
+    { pattern: /reg\s+export\b/i, reason: '导出注册表可能泄露敏感信息' },
+    { pattern: /reg\s+save\b/i, reason: '保存注册表配置单元' },
     { pattern: /powershell\s+.*-executionpolicy\s+bypass/i, reason: '绕过 PowerShell 执行策略' },
     { pattern: /Invoke-WebRequest.*\|\s*iex/i, reason: '从网络下载并直接执行脚本' },
     { pattern: /Invoke-Expression/i, reason: '动态执行代码，可能存在安全风险' },
@@ -120,6 +143,8 @@ const WIN_DANGEROUS_PATTERNS: Record<Exclude<DangerLevel, 'safe'>, Array<{ patte
     { pattern: /wscript.*\/\/e:jscript/i, reason: '通过 wscript 执行脚本，可能存在安全风险' },
     { pattern: /takeown\s+.*\/r/i, reason: '递归获取文件所有权，可能修改系统文件权限' },
     { pattern: /icacls\s+.*\/grant.*Everyone/i, reason: '授予所有人完全权限，存在安全风险' },
+    { pattern: /netsh\s+.*wlan\s+.*key/i, reason: '可能导出 WiFi 密码' },
+    { pattern: /vssadmin\s+delete\s+shadows/i, reason: '删除卷影副本' },
   ],
   warn: [
     { pattern: /del\s+/i, reason: '删除文件操作' },
@@ -144,6 +169,7 @@ const WIN_SAFE_PATTERNS: RegExp[] = [
   /^where(\s|$)/i,
   /^echo(\s|$)/i,
   /^cd(\s|$)/i,
+  /^chdir(\s|$)/i,
   /^mkdir(\s|$)/i,
   /^hostname(\s|$)/i,
   /^ipconfig(\s|$)/i,
@@ -154,6 +180,14 @@ const WIN_SAFE_PATTERNS: RegExp[] = [
   /^move(\s|$)/i,
   /^start(\s|$)/i,       // Windows equivalent of macOS 'open'
   /^explorer(\s|$)/i,    // Open files/folders in Explorer
+  /^tasklist(\s|$)/i,    // List processes
+  /^systeminfo(\s|$)/i,  // System information
+  /^findstr(\s|$)/i,     // Windows grep
+  /^tree(\s|$)/i,        // Directory tree
+  /^more(\s|$)/i,        // Paginated view
+  /^fc(\s|$)/i,          // File compare
+  /^ver(\s|$)/i,         // System version
+  /^path(\s|$)/i,        // View PATH
 ];
 
 /**
