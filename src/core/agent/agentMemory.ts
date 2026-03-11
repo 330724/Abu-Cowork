@@ -14,6 +14,17 @@ import { ensureParentDir, joinPath } from '../../utils/pathUtils';
 
 const MAX_MEMORY_CHARS = 4000; // Limit memory size to prevent context bloat
 
+/**
+ * Truncate content at a paragraph boundary to avoid breaking markdown structure.
+ * Falls back to hard cut if no suitable paragraph break is found.
+ */
+function truncateAtParagraph(content: string, maxChars: number, suffix: string): string {
+  if (content.length <= maxChars) return content;
+  const cutPoint = content.lastIndexOf('\n\n', maxChars);
+  const effectiveCut = cutPoint > maxChars * 0.5 ? cutPoint : maxChars;
+  return content.slice(0, effectiveCut) + '\n' + suffix;
+}
+
 // Cache homeDir to avoid repeated IPC calls
 let cachedHomeDir: string | null = null;
 
@@ -51,11 +62,7 @@ async function readRawMemory(agentName: string): Promise<string> {
 export async function loadAgentMemory(agentName: string): Promise<string> {
   const content = await readRawMemory(agentName);
   if (!content) return '';
-  // Truncate if too large (for prompt injection only)
-  if (content.length > MAX_MEMORY_CHARS) {
-    return content.slice(0, MAX_MEMORY_CHARS) + '\n...(记忆已截断)';
-  }
-  return content;
+  return truncateAtParagraph(content, MAX_MEMORY_CHARS, '...(记忆已截断)');
 }
 
 /**
@@ -121,10 +128,7 @@ async function readRawProjectMemory(workspacePath: string): Promise<string> {
 export async function loadProjectMemory(workspacePath: string): Promise<string> {
   const content = await readRawProjectMemory(workspacePath);
   if (!content) return '';
-  if (content.length > MAX_PROJECT_MEMORY_CHARS) {
-    return content.slice(0, MAX_PROJECT_MEMORY_CHARS) + '\n...(项目记忆已截断)';
-  }
-  return content;
+  return truncateAtParagraph(content, MAX_PROJECT_MEMORY_CHARS, '...(项目记忆已截断)');
 }
 
 /**

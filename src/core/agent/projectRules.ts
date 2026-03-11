@@ -19,6 +19,16 @@ const MAX_USER_RULES_CHARS = 4000;
 const MAX_PROJECT_RULES_CHARS = 8000;
 const MAX_RULE_FILES = 20;
 
+/**
+ * Truncate content at a paragraph boundary to avoid breaking markdown structure.
+ */
+function truncateAtParagraph(content: string, maxChars: number, suffix: string): string {
+  if (content.length <= maxChars) return content;
+  const cutPoint = content.lastIndexOf('\n\n', maxChars);
+  const effectiveCut = cutPoint > maxChars * 0.5 ? cutPoint : maxChars;
+  return content.slice(0, effectiveCut) + '\n' + suffix;
+}
+
 // Cache homeDir to avoid repeated IPC calls
 let cachedHomeDir: string | null = null;
 
@@ -48,10 +58,7 @@ export async function loadUserRules(): Promise<string> {
   const rulesPath = joinPath(home, '.abu', 'ABU.md');
   const content = await safeReadTextFile(rulesPath);
   if (!content) return '';
-  if (content.length > MAX_USER_RULES_CHARS) {
-    return content.slice(0, MAX_USER_RULES_CHARS) + '\n...(用户规则已截断)';
-  }
-  return content;
+  return truncateAtParagraph(content, MAX_USER_RULES_CHARS, '...(用户规则已截断)');
 }
 
 /**
@@ -142,9 +149,7 @@ export async function loadAllRules(workspacePath: string | null): Promise<string
 
   // Enforce total budget
   const totalBudget = MAX_USER_RULES_CHARS + MAX_PROJECT_RULES_CHARS;
-  if (result.length > totalBudget) {
-    result = result.slice(0, totalBudget) + '\n...(规则已截断，请精简规则内容)';
-  }
+  result = truncateAtParagraph(result, totalBudget, '...(规则已截断，请精简规则内容)');
 
   return result;
 }

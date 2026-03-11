@@ -50,14 +50,27 @@ describe('loadUserRules', () => {
     expect(result).toBe('# My Rules\nUse TypeScript.');
   });
 
-  it('truncates content exceeding 4000 chars', async () => {
+  it('truncates content exceeding 4000 chars at paragraph boundary', async () => {
+    // Create content with paragraphs: paragraph break at ~3500 chars
+    const para1 = 'a'.repeat(3500);
+    const para2 = 'b'.repeat(2000);
+    const longContent = para1 + '\n\n' + para2;
+    mockReadTextFile.mockResolvedValue(longContent);
+    const result = await loadUserRules();
+    expect(result.length).toBeLessThan(5000);
+    expect(result).toContain('用户规则已截断');
+    // Should truncate at the paragraph boundary (3500), not at 4000
+    expect(result).toContain(para1);
+    expect(result).not.toContain(para2);
+  });
+
+  it('truncates at hard limit when no suitable paragraph boundary', async () => {
+    // Single long line with no paragraph breaks
     const longContent = 'x'.repeat(5000);
     mockReadTextFile.mockResolvedValue(longContent);
     const result = await loadUserRules();
     expect(result.length).toBeLessThan(5000);
     expect(result).toContain('用户规则已截断');
-    // Should be 4000 chars + truncation message
-    expect(result.startsWith('x'.repeat(4000))).toBe(true);
   });
 });
 

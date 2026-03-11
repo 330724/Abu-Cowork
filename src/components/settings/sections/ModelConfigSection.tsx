@@ -1,6 +1,6 @@
 import { useSettingsStore, getEffectiveModel, PROVIDER_CONFIGS, getAvailableProviders } from '@/stores/settingsStore';
 import type { LLMProvider } from '@/types';
-import { Eye, EyeOff, CircleCheck, CircleAlert, Brain, Thermometer, ChevronDown } from 'lucide-react';
+import { Eye, EyeOff, CircleCheck, CircleAlert, Thermometer, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/i18n';
@@ -15,9 +15,9 @@ export default function ModelConfigSection() {
   const store = useSettingsStore();
   const {
     provider, apiFormat, model, customModel, apiKey, baseUrl,
-    temperature, enableThinking, thinkingBudget,
+    temperature,
     setApiFormat, setModel, setCustomModel, setApiKey, setBaseUrl,
-    setTemperature, setEnableThinking, setThinkingBudget,
+    setTemperature,
     switchProvider,
   } = store;
 
@@ -224,44 +224,6 @@ export default function ModelConfigSection() {
               </div>
             </div>
 
-            {/* Extended Thinking */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs text-[#656358] font-medium flex items-center gap-1.5">
-                  <Brain className="h-3.5 w-3.5" />
-                  {t.settings.extendedThinking}
-                </label>
-                <Toggle
-                  checked={enableThinking}
-                  onChange={() => setEnableThinking(!enableThinking)}
-                  size="md"
-                />
-              </div>
-              <p className="text-xs text-[#888579]">{t.settings.extendedThinkingDescription}</p>
-            </div>
-
-            {enableThinking && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs text-[#656358] font-medium">{t.settings.thinkingBudget}</label>
-                  <span className="text-xs font-mono text-[#29261b]">{thinkingBudget.toLocaleString()}</span>
-                </div>
-                <input
-                  type="range"
-                  min="1000"
-                  max="50000"
-                  step="1000"
-                  value={thinkingBudget}
-                  onChange={(e) => setThinkingBudget(parseInt(e.target.value))}
-                  className="w-full slider-filled"
-                  style={{ '--slider-progress': `${((thinkingBudget - 1000) / 49000) * 100}%` } as React.CSSProperties}
-                />
-                <div className="flex justify-between text-[10px] text-[#888579]">
-                  <span>{t.settings.thinkingBudgetFast}</span>
-                  <span>{t.settings.thinkingBudgetDeep}</span>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
