@@ -321,7 +321,7 @@ describe('pathSafety', () => {
       // //?/C:/tmp/file should NOT be blocked as UNC
       const result = await checkReadPath('//?/C:/tmp/file.txt');
       // Should not get UNC error — it should be treated as C:/tmp/file.txt
-      expect(result.reason).not.toContain('UNC');
+      expect(result.reason ?? '').not.toContain('UNC');
     });
   });
 });
