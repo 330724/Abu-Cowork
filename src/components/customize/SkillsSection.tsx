@@ -7,7 +7,7 @@ import { skillTemplates } from '@/data/marketplace/skills';
 import { skillLoader } from '@/core/skill/loader';
 import SkillEditor from './SkillEditor';
 import { Toggle } from '@/components/ui/toggle';
-import { Trash2, File, FileText, Folder, ChevronDown, ChevronRight, Pencil, MoreHorizontal, Eye, Code, Info, MessageCircle, Search, Plus, X, Wand2, PenLine, Upload, Download } from 'lucide-react';
+import { Trash2, FileText, Folder, ChevronDown, ChevronRight, Pencil, MoreHorizontal, Eye, Code, Info, MessageCircle, Search, Plus, X, Wand2, PenLine, Upload, Download } from 'lucide-react';
 import { remove } from '@tauri-apps/plugin-fs';
 import { save as saveDialog } from '@tauri-apps/plugin-dialog';
 import { writeFile } from '@tauri-apps/plugin-fs';
@@ -205,21 +205,6 @@ export default function SkillsSection({ manualCreateTrigger, onAICreate, onManua
   };
 
   const selected = installedSkills.find((s) => s.name === selectedSkill) ?? null;
-
-  // Load supporting files when a skill is expanded
-  const toggleExpanded = async (skillName: string) => {
-    const next = new Set(expandedSkills);
-    if (next.has(skillName)) {
-      next.delete(skillName);
-    } else {
-      next.add(skillName);
-      if (!supportingFiles[skillName]) {
-        const files = await skillLoader.listSupportingFiles(skillName);
-        setSupportingFiles((prev) => ({ ...prev, [skillName]: files }));
-      }
-    }
-    setExpandedSkills(next);
-  };
 
   // Delete a user-installed skill
   const handleDelete = async (skill: Skill) => {

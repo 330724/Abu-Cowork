@@ -343,6 +343,7 @@ export interface TranslationDict {
     disconnect: string;
     add: string;
     install: string;
+    uninstall: string;
     installed: string;
     installAndConnect: string;
     popularMCPServices: string;

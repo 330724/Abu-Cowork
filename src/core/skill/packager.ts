@@ -7,7 +7,7 @@
  * The skill name is extracted from the SKILL.md YAML frontmatter `name` field.
  */
 
-import { zipSync, unzipSync, strFromU8, strToU8 } from 'fflate';
+import { zipSync, unzipSync, strFromU8 } from 'fflate';
 import { readFile, writeFile, readDir, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { joinPath } from '@/utils/pathUtils';
 import { parse as parseYaml } from 'yaml';
@@ -182,8 +182,12 @@ function extractNameFromSkillMd(content: string): string | null {
 
 /** Custom error for skill name conflict */
 export class ConflictError extends Error {
-  constructor(public skillName: string, public targetDir: string) {
+  skillName: string;
+  targetDir: string;
+  constructor(skillName: string, targetDir: string) {
     super(`Skill "${skillName}" already exists`);
     this.name = 'ConflictError';
+    this.skillName = skillName;
+    this.targetDir = targetDir;
   }
 }

@@ -376,6 +376,7 @@ const enUS: TranslationDict = {
     disconnect: 'Disconnect',
     add: 'Add',
     install: 'Install',
+    uninstall: 'Uninstall',
     installed: 'Installed',
     installAndConnect: 'Install & Connect',
     popularMCPServices: 'Popular MCP Services',

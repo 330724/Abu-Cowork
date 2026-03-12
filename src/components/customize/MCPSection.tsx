@@ -149,7 +149,6 @@ export default function MCPSection({ showAddForm: externalShowAddForm, onAddForm
 
   // Categorize: "我的" = custom (not from templates), "示例" = template-based (installed + uninstalled)
   const searchLower = toolboxSearchQuery.toLowerCase();
-  const installedNames = useMemo(() => new Set(mcpServers.map((s) => s.config.name)), [mcpServers]);
   const templateNames = useMemo(() => new Set(mcpTemplates.map((t) => t.name)), []);
 
   // "我的": user-added custom servers (not matching any template)

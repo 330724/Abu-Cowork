@@ -2,6 +2,7 @@ import type { ToolDefinition, ToolResult, ToolResultContent } from '../../types'
 import { mcpManager } from '../mcp/client';
 import { analyzeCommand, type ConfirmationInfo, type DangerLevel } from './commandSafety';
 import { checkReadPath, checkWritePath, checkListPath } from './pathSafety';
+import { isWindows } from '../../utils/platform';
 import { getI18n } from '../../i18n';
 import { truncateToolResult } from '../context/truncation';
 import { useSettingsStore } from '../../stores/settingsStore';

@@ -7,7 +7,7 @@ import { agentTemplates } from '@/data/marketplace/agents';
 import { agentRegistry } from '@/core/agent/registry';
 import AgentEditor from './AgentEditor';
 import { Toggle } from '@/components/ui/toggle';
-import { Bot, ChevronDown, ChevronRight, MoreHorizontal, Pencil, Trash2, MessageCircle, Eye, Code, Search, Plus, X, Wand2, PenLine, Upload } from 'lucide-react';
+import { ChevronDown, ChevronRight, MoreHorizontal, Pencil, Trash2, MessageCircle, Eye, Code, Search, Plus, X, Wand2, PenLine, Upload } from 'lucide-react';
 import { remove } from '@tauri-apps/plugin-fs';
 import { getParentDir } from '@/utils/pathUtils';
 import type { SubagentDefinition } from '@/types';

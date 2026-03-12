@@ -5,7 +5,6 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/i18n';
 import { Select } from '@/components/ui/select';
-import { Toggle } from '@/components/ui/toggle';
 import { Input } from '@/components/ui/input';
 
 // Filtered by edition — community edition won't see internal-only providers

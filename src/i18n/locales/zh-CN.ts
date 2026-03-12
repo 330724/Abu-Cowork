@@ -376,6 +376,7 @@ const zhCN: TranslationDict = {
     disconnect: '断开连接',
     add: '添加',
     install: '安装',
+    uninstall: '卸载',
     installed: '已安装',
     installAndConnect: '安装并连接',
     popularMCPServices: '常用 MCP 服务',
