@@ -1,11 +1,11 @@
 {
   "productName": "Abu",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "identifier": "com.abu.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:5173",
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "npm run build && npm run copy-resources",
     "frontendDist": "../dist"
   },
   "app": {
@@ -39,8 +39,8 @@
     "active": true,
     "targets": ["dmg", "nsis"],
     "resources": [
-      "../builtin-skills/",
-      "../builtin-agents/"
+      "builtin-skills/",
+      "builtin-agents/"
     ],
     "icon": [
       "icons/32x32.png",

@@ -1,206 +1,217 @@
 <div align="center">
 
-**English** | [中文](README_CN.md)
+**中文** | [English](README_EN.md)
 
 <img src="website/assets/abu-avatar.png" width="120" height="120" style="border-radius: 24px" />
 
 # Abu (阿布)
 
-**Your AI Desktop Office Assistant — Just Leave It to Abu**
+**你的 AI 桌面办公搭子 — 交给阿布就行啦**
 
-A locally-run AI desktop assistant inspired by Claude Code's Cowork mode.
-Tell Abu what you need — it reads files, runs commands, writes docs, and builds reports, all on your machine.
+本地运行的 AI 桌面办公助手，灵感来自 Claude Code 的 Cowork 模式。
+你说需求，阿布干活 — 读文件、跑命令、写文档、做报表，全在本地完成。
 
 [![Release](https://img.shields.io/github/v/release/PM-Shawn/Abu-Cowork?style=flat-square)](https://github.com/PM-Shawn/Abu-Cowork/releases)
 [![License](https://img.shields.io/badge/license-Abu%20License-blue?style=flat-square)](LICENSE)
 
-[Download](#-download) · [Quick Start](#-quick-start) · [Features](#-features) · [Build from Source](#-build-from-source)
+[下载安装](#-下载安装) · [快速开始](#-快速开始) · [功能介绍](#-功能介绍) · [使用指南](docs/User-Guide.md) · [从源码构建](#-从源码构建)
 
 </div>
 
 ---
 
-## Preview
+## 产品预览
 
-> Clean interface, powerful capabilities
+> 简洁直观的界面，强大灵活的能力
 
-### Conversational Interaction
-Tell Abu what you want in natural language — conversation is the command.
+### 对话式交互
+用自然语言告诉阿布你想做什么，对话即指令。
 
 <img src="website/assets/screenshot-home.png" width="800" />
 
-### Task Execution
-Intelligently invokes tools to complete complex tasks like file organization automatically.
+### 任务执行
+智能调用工具，自动完成文件整理等复杂任务。
 
 <img src="website/assets/screenshot-task.png" width="800" />
 
-### Toolbox
-Rich collection of Skills, Agents, and MCP tools — install on demand to extend capabilities.
+### 工具箱
+丰富的 Skills、Agents 和 MCP 工具，按需安装扩展能力。
 
 <img src="website/assets/screenshot-toolbox.png" width="800" />
 
-### Scheduled Tasks
-Set up recurring schedules and let Abu work for you automatically every day.
+### 定时任务
+设定定时计划，让阿布每天自动为你工作。
 
 <img src="website/assets/screenshot-schedule.png" width="800" />
 
-### Custom Models
-Bring your own API keys and models — flexibly connect to various LLM providers.
+### 自定义模型
+支持自定义 API 和模型，灵活接入各类 LLM 服务。
 
 <img src="website/assets/screenshot-model.png" width="800" />
 
-## Features
+## 功能介绍
 
-- **Autonomous Agent** — More than chat: plans, invokes tools, reads/writes files, executes commands, and completes complex tasks
-- **Skill System** — Built-in skills for translation, weekly reports, code review, deep research, article writing, and more — one-click install, fully customizable
-- **MCP Protocol** — Connect to databases, search engines, GitHub, and other external services via Model Context Protocol
-- **Scheduled Tasks** — Set recurring schedules for Abu to run tasks automatically (e.g., daily AI news digest every morning)
-- **Multi-Model Support** — Works with Anthropic Claude, DeepSeek, Qwen, Doubao, Moonshot, GLM, and other major LLM providers
-- **Sandbox Security** — macOS Seatbelt sandbox isolation + sensitive path protection + command safety checks
-- **Local-First** — Your data stays local, your API keys stay local — nothing goes through third-party servers
-- **Cross-Platform** — Supports macOS (Apple Silicon / Intel) and Windows
+- **Agent 自主执行** — 不只是聊天，能自主规划、调用工具、读写文件、执行命令，完成复杂任务
+- **Skill 技能系统** — 内置翻译、周报、代码审查、深度研究、文章写作等技能，一键安装，支持自定义
+- **MCP 工具协议** — 通过 Model Context Protocol 连接数据库、搜索引擎、GitHub 等外部服务
+- **定时任务** — 设定定时计划，让阿布定期执行任务（如每天早上发送 AI 日报）
+- **多模型支持** — 支持 Anthropic Claude、DeepSeek、通义千问、豆包、Moonshot、智谱等主流模型
+- **沙箱安全** — macOS Seatbelt 沙箱隔离 + 敏感路径保护 + 命令安全检查
+- **本地优先** — 数据存在本地，API Key 存在本地，不经过第三方服务器
+- **跨平台** — 支持 macOS (Apple Silicon / Intel) 和 Windows
 
-## Download
+> 详细功能说明请查看 [使用指南](docs/User-Guide.md)
 
-Head to [GitHub Releases](https://github.com/PM-Shawn/Abu-Cowork/releases) to download the latest version:
+## 下载安装
 
-| Platform | File |
-|----------|------|
+前往 [GitHub Releases](https://github.com/PM-Shawn/Abu-Cowork/releases) 下载最新版本：
+
+| 平台 | 文件 |
+|------|------|
 | macOS (Apple Silicon) | `Abu_x.x.x_aarch64.dmg` |
 | macOS (Intel) | `Abu_x.x.x_x64.dmg` |
 | Windows | `Abu_x.x.x_x64-setup.exe` |
 
-> **macOS Users**: If you see a "damaged" warning on first launch, run `xattr -cr /Applications/Abu.app`. See the [Installation Guide](docs/Installation-Guide.md) for details.
+> **macOS 用户注意**：首次打开如提示"已损坏"，需执行 `xattr -cr /Applications/Abu.app`，详见 [安装指南](docs/Installation-Guide.md)。
 
-## Quick Start
+## 快速开始
 
-1. Download, install, and open Abu
-2. Click the settings icon at the bottom left, go to "Custom Models"
-3. Choose your API provider and enter your API Key
-4. Return to the main screen and start chatting
+1. 下载安装并打开 Abu
+2. 点击左下角设置图标，进入「自定义模型」
+3. 选择 API 厂商，填入 API Key
+4. 回到主界面，开始对话
 
-**Try these prompts:**
+**试试这些指令：**
 
 ```
-Organize the files on my desktop by type
+帮我整理下桌面的文件，按类型分类放好
 ```
 ```
-Extract the tables from this PDF and generate an Excel file
+把这个 PDF 里的表格提取出来，生成 Excel
 ```
 ```
-Every morning at 9 AM, search for the latest AI news and generate a daily digest
+每天早上 9 点帮我搜索最新的 AI 新闻，生成日报
 ```
 
-## Tech Stack
+> 更多使用场景请查看 [使用指南](docs/User-Guide.md)
 
-| Layer | Technology |
-|-------|-----------|
-| Desktop Framework | Tauri 2.0 (Rust + Web) |
-| Frontend | React 19 + TypeScript + TailwindCSS v4 + Vite |
-| LLM | Multi-model adapter (Anthropic / OpenAI-compatible) |
-| State Management | Zustand + Immer |
-| Tool Protocol | MCP (`@modelcontextprotocol/sdk`) |
-| Sandbox | macOS Seatbelt + path/command dual validation |
+## 技术栈
+
+| 层级 | 技术 |
+|------|------|
+| 桌面框架 | Tauri 2.0 (Rust + Web) |
+| 前端 | React 19 + TypeScript + TailwindCSS v4 + Vite |
+| LLM | 多模型适配 (Anthropic / OpenAI-compatible) |
+| 状态管理 | Zustand + Immer |
+| 工具协议 | MCP (`@modelcontextprotocol/sdk`) |
+| 安全沙箱 | macOS Seatbelt + 路径/命令双重校验 |
 | UI | Radix UI + Lucide Icons |
-| Testing | Vitest + happy-dom |
+| 测试 | Vitest + happy-dom |
 
-## Build from Source
+## 从源码构建
 
-### Prerequisites
+### 前置要求
 
 - Node.js >= 18
-- Rust >= 1.75 ([Install Rust](https://rustup.rs/))
-- Tauri 2.0 system dependencies ([See docs](https://v2.tauri.app/start/prerequisites/))
+- Rust >= 1.75（[安装 Rust](https://rustup.rs/)）
+- Tauri 2.0 系统依赖（[参考文档](https://v2.tauri.app/start/prerequisites/)）
 
-### Development
+### 开发
 
 ```bash
-# Clone the repo
+# 克隆仓库
 git clone https://github.com/PM-Shawn/Abu-Cowork.git
 cd Abu-Cowork
 
-# Install dependencies
+# 安装依赖
 npm install
 
-# Launch desktop app (recommended)
+# 启动桌面应用（推荐）
 npm run tauri dev
 
-# Frontend only (no Rust required)
+# 仅启动前端（不需要 Rust）
 npm run dev
 ```
 
-### Build
+### 构建
 
 ```bash
 npm run tauri build
 ```
 
-Build artifacts are located in `src-tauri/target/release/bundle/`.
+构建产物位于 `src-tauri/target/release/bundle/`。
 
-### Testing
+### 测试
 
 ```bash
-npm test              # Run tests
-npm run test:watch    # Watch mode
-npm run test:coverage # Coverage report
-npm run lint          # ESLint check
+npm test              # 运行测试
+npm run test:watch    # 监听模式
+npm run test:coverage # 覆盖率报告
+npm run lint          # ESLint 检查
 ```
 
-## Project Structure
+## 项目结构
 
 ```
 src/
-├── components/       # React UI components
-│   ├── chat/         # Chat interface, message bubbles, Markdown rendering
-│   ├── sidebar/      # Sidebar navigation
-│   ├── panel/        # Right-side detail panel
-│   ├── schedule/     # Scheduled task views
-│   ├── settings/     # System settings
-│   └── ui/           # Base UI components (shadcn/Radix)
-├── core/             # Core engine (non-UI)
-│   ├── agent/        # Agent loop, retry, memory
-│   ├── llm/          # LLM adapter layer (Claude + OpenAI-compatible)
-│   ├── tools/        # Tool registry, built-in tools, safety checks
-│   ├── mcp/          # MCP client
-│   ├── skill/        # Skill loading & preprocessing
-│   ├── scheduler/    # Scheduling engine
-│   ├── context/      # Context management & token estimation
-│   └── sandbox/      # Sandbox configuration
-├── stores/           # Zustand state management
+├── components/       # React UI 组件
+│   ├── chat/         # 对话界面、消息气泡、Markdown 渲染
+│   ├── sidebar/      # 侧边栏导航
+│   ├── panel/        # 右侧详情面板
+│   ├── schedule/     # 定时任务视图
+│   ├── settings/     # 系统设置
+│   └── ui/           # 基础 UI 组件 (shadcn/Radix)
+├── core/             # 核心引擎（非 UI）
+│   ├── agent/        # Agent 循环、重试、记忆
+│   ├── llm/          # LLM 适配层 (Claude + OpenAI-compatible)
+│   ├── tools/        # 工具注册、内置工具、安全校验
+│   ├── mcp/          # MCP 客户端
+│   ├── skill/        # Skill 加载与预处理
+│   ├── scheduler/    # 定时调度引擎
+│   ├── context/      # 上下文管理与 Token 估算
+│   └── sandbox/      # 沙箱配置
+├── stores/           # Zustand 状态管理
 ├── hooks/            # React Hooks
-├── i18n/             # Internationalization (Chinese / English)
-├── types/            # TypeScript type definitions
-└── utils/            # Utility functions
+├── i18n/             # 国际化 (中文 / English)
+├── types/            # TypeScript 类型定义
+└── utils/            # 工具函数
 
-builtin-skills/       # Built-in skill definitions (translation, reports, code review, etc.)
-builtin-agents/       # Built-in agent definitions
-src-tauri/            # Tauri Rust backend (sandbox, command execution, network proxy)
-abu-browser-bridge/   # Browser bridge service
-abu-chrome-extension/ # Chrome extension
+builtin-skills/       # 内置技能定义 (翻译、周报、代码审查等)
+builtin-agents/       # 内置 Agent 定义
+src-tauri/            # Tauri Rust 后端 (沙箱、命令执行、网络代理)
+abu-browser-bridge/   # 浏览器桥接服务
+abu-chrome-extension/ # Chrome 扩展
 ```
 
-## Contributing
+## 文档
 
-Issues and Pull Requests are welcome!
+| 文档 | 说明 |
+|------|------|
+| [使用指南](docs/User-Guide.md) | 完整的产品功能介绍与使用说明 |
+| [安装指南](docs/Installation-Guide.md) | 各平台安装与常见问题解决 |
 
-1. Fork this repo
-2. Create your branch: `git checkout -b feat/my-feature`
-3. Commit your changes: `git commit -m 'feat: add my feature'`
-4. Push to the branch: `git push origin feat/my-feature`
-5. Open a Pull Request
+## 贡献
 
-## Feedback & Community
+欢迎提交 Issue 和 Pull Request！
 
-Got questions or ideas? Scan the QR code to join the WeChat group:
+1. Fork 本仓库
+2. 创建你的分支：`git checkout -b feat/my-feature`
+3. 提交改动：`git commit -m 'feat: add my feature'`
+4. 推送分支：`git push origin feat/my-feature`
+5. 发起 Pull Request
+
+## 反馈与交流
+
+使用中遇到问题或有好的想法，欢迎扫码加微信交流：
 
 <img src="src/assets/wechat-qr.png" width="200" />
 
-## Support
+## 赞赏支持
 
-If Abu has been helpful to you, feel free to buy the author a coffee:
+如果阿布对你有帮助，欢迎请作者喝杯咖啡：
 
 <img src="src/assets/sponsor-qr.png" width="200" />
 
-## License
+## 许可证
 
-[Abu License](LICENSE) — Free for personal, educational, and non-commercial use. Copyright notices must be retained and may not be modified or removed. Commercial use requires authorization. See [LICENSE](LICENSE) for details.
+[Abu License](LICENSE) — 个人、教育、非商业用途免费使用。使用需保留版权声明，禁止修改或删除。商业用途需获取授权，详见 [LICENSE](LICENSE)。

@@ -488,10 +488,11 @@ fn get_login_shell_path() -> Option<String> {
             let _ = tx.send(buf);
         });
 
-        // Wait up to 5s — if shell hangs (slow .zshrc), give up and kill
-        let raw = match rx.recv_timeout(std::time::Duration::from_secs(5)) {
+        // Wait up to 8s — nvm/conda init in .zshrc can be slow
+        let raw = match rx.recv_timeout(std::time::Duration::from_secs(8)) {
             Ok(s) => s,
             Err(_) => {
+                eprintln!("[Abu PATH] Login shell timed out after 8s, using fallback PATH");
                 let _ = child.kill();
                 String::new()
             }
@@ -504,12 +505,52 @@ fn get_login_shell_path() -> Option<String> {
             if let Some(end) = after.find(MARKER) {
                 let path = after[..end].trim().to_string();
                 if !path.is_empty() {
+                    eprintln!("[Abu PATH] Resolved from login shell: {}", &path);
                     return Some(path);
                 }
             }
         }
-        // Fallback to inherited PATH
-        std::env::var("PATH").ok()
+
+        // Fallback: inherited PATH + common tool directories
+        let base = std::env::var("PATH").unwrap_or_else(|_| "/usr/bin:/bin".to_string());
+        let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+
+        let mut extra_dirs: Vec<String> = vec![
+            "/usr/local/bin".to_string(),
+            "/opt/homebrew/bin".to_string(),
+            "/opt/homebrew/sbin".to_string(),
+            format!("{}/.volta/bin", home),
+            format!("{}/.cargo/bin", home),
+            format!("{}/.local/bin", home),
+        ];
+
+        // nvm: glob for the latest installed node version
+        let nvm_base = format!("{}/.nvm/versions/node", home);
+        if let Ok(entries) = std::fs::read_dir(&nvm_base) {
+            // Collect version dirs sorted descending, pick the latest
+            let mut versions: Vec<String> = entries
+                .filter_map(|e| e.ok())
+                .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
+                .map(|e| e.file_name().to_string_lossy().to_string())
+                .collect();
+            versions.sort();
+            if let Some(latest) = versions.last() {
+                extra_dirs.push(format!("{}/{}/bin", nvm_base, latest));
+            }
+        }
+
+        // Deduplicate: only add dirs not already in base PATH
+        let base_set: std::collections::HashSet<&str> = base.split(':').collect();
+        let mut merged = base.clone();
+        for dir in &extra_dirs {
+            if !base_set.contains(dir.as_str()) && std::path::Path::new(dir).exists() {
+                merged.push(':');
+                merged.push_str(dir);
+            }
+        }
+
+        eprintln!("[Abu PATH] Using fallback PATH: {}", &merged);
+        Some(merged)
     }).clone()
 }
 
@@ -639,7 +680,11 @@ async fn mcp_spawn(
         cmd.env(k, v);
     }
 
-    let mut child = cmd.spawn().map_err(|e| format!("Failed to spawn '{}': {}", command, e))?;
+    let mut child = cmd.spawn().map_err(|e| {
+        let path_info = std::env::var("PATH").unwrap_or_else(|_| "(unavailable)".to_string());
+        eprintln!("[MCP] Failed to spawn '{}': {}. PATH={}", command, e, path_info);
+        format!("Failed to spawn '{}': {}. Check that the command is installed and in your PATH.", command, e)
+    })?;
 
     let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
     let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;

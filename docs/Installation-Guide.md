@@ -1,5 +1,7 @@
 # Abu 安装指南
 
+[English](Installation-Guide_EN.md) | **中文**
+
 ## 下载
 
 前往 [GitHub Releases](https://github.com/PM-Shawn/Abu-Cowork/releases) 下载对应平台的安装包：
