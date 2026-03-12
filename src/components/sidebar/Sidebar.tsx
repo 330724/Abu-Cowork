@@ -12,6 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import type { ConversationStatus } from '@/types';
 import ScheduledSection from '@/components/sidebar/ScheduledSection';
+import TriggerSection from '@/components/sidebar/TriggerSection';
 import abuAvatar from '@/assets/abu-avatar.png';
 import { save as saveDialog, open as openDialog } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
@@ -104,9 +105,9 @@ export default function Sidebar() {
   }, [contextMenu]);
 
   // Sort by createdAt to keep positions stable during status updates
-  // Filter out conversations created by scheduled tasks — they appear in ScheduledSection
+  // Filter out conversations created by scheduled tasks or triggers — they appear in their own sections
   const sortedConvs = Object.values(conversations)
-    .filter((c) => !c.scheduledTaskId)
+    .filter((c) => !c.scheduledTaskId && !c.triggerId)
     .sort((a, b) => b.createdAt - a.createdAt);
 
   const handleDeleteConversation = (e: React.MouseEvent, convId: string) => {
@@ -251,6 +252,9 @@ export default function Sidebar() {
 
       {/* Scheduled Section */}
       <ScheduledSection />
+
+      {/* Trigger Section */}
+      <TriggerSection />
 
       {/* Recents Section */}
       <div className="px-6 pt-4 pb-1.5">

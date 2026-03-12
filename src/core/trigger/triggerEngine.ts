@@ -285,7 +285,7 @@ class TriggerEngine {
     // Create a hidden conversation (same pattern as scheduler.ts)
     const conversationId = chatStore.createConversation(
       trigger.action.workspacePath ?? null,
-      { skipActivate: true }
+      { triggerId: trigger.id, skipActivate: true }
     );
 
     // Set conversation title

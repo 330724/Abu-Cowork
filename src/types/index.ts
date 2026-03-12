@@ -126,6 +126,7 @@ export interface Conversation {
   workspacePath?: string | null;  // Workspace bound to this conversation
   enabledMCPServers?: string[];  // Per-session MCP server filter (undefined = all enabled)
   scheduledTaskId?: string;  // If set, this conversation was created by a scheduled task
+  triggerId?: string;  // If set, this conversation was created by a trigger
   contextCache?: ContextCache;  // Ephemeral compression cache (not persisted)
 }
 

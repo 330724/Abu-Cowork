@@ -47,6 +47,9 @@ export interface TranslationDict {
     renameConversation: string;
     viewScheduledTask: string;
     archiveRun: string;
+    triggered: string;
+    viewTrigger: string;
+    archiveTriggerRun: string;
     help: string;
     editProfile: string;
     nickname: string;

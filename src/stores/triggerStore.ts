@@ -72,6 +72,7 @@ interface TriggerActions {
   completeRun: (triggerId: string, runId: string) => void;
   errorRun: (triggerId: string, runId: string, error: string) => void;
   addSkippedRun: (triggerId: string, status: 'filtered' | 'debounced', eventSummary?: string) => void;
+  removeRun: (triggerId: string, runId: string) => void;
 
   // Query
   getActiveTriggers: () => Trigger[];
@@ -225,6 +226,14 @@ export const useTriggerStore = create<TriggerStore>()(
           }
           trigger.totalRuns += 1;
           trigger.lastTriggeredAt = now;
+        });
+      },
+
+      removeRun: (triggerId, runId) => {
+        set((state) => {
+          const trigger = state.triggers[triggerId];
+          if (!trigger) return;
+          trigger.runs = trigger.runs.filter((r) => r.id !== runId);
         });
       },
 
