@@ -304,6 +304,7 @@ async function requestFilePermission(request: {
 export interface WorkspaceRequest {
   reason: string;
   conversationId: string;
+  suggestedPath?: string;
   resolve: (path: string | null) => void;
 }
 
@@ -355,10 +356,10 @@ export function drainWorkspaceRequest(): void {
  * Request the user to select a workspace folder.
  * Called from the request_workspace tool.
  */
-export async function requestWorkspace(reason: string, conversationId?: string): Promise<string | null> {
+export async function requestWorkspace(reason: string, conversationId?: string, suggestedPath?: string): Promise<string | null> {
   const convId = conversationId ?? currentLoopContext?.conversationId ?? '';
   return new Promise((resolve) => {
-    pendingWorkspaceRequest = { reason, conversationId: convId, resolve };
+    pendingWorkspaceRequest = { reason, conversationId: convId, suggestedPath, resolve };
     notifyWorkspaceRequestListeners();
   });
 }

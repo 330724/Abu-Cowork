@@ -84,6 +84,13 @@ export default function PermissionDialog({ request, onAllow, onDeny, onChooseFol
               {t.permission.folderSelect?.description ?? ''}
             </p>
 
+            {/* Show suggested path if available */}
+            {request.path && (
+              <div className="mb-4 px-3 py-2 bg-[#f5f3ee] rounded-lg border border-[#e8e4dd] inline-block">
+                <p className="text-[13px] text-[#656358] font-mono">{request.path}</p>
+              </div>
+            )}
+
             <Button
               size="lg"
               onClick={onChooseFolder}

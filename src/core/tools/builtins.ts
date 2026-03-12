@@ -2176,6 +2176,15 @@ const readSkillFileTool: ToolDefinition = {
  * request_workspace tool — asks the user to select a workspace folder
  * Used when the user's request requires file operations but no workspace is set.
  */
+
+// Mapping from user-friendly folder hints to system info keys
+const FOLDER_HINT_MAP: Record<string, string> = {
+  '下载': 'downloads', '下载文件夹': 'downloads', 'downloads': 'downloads',
+  '桌面': 'desktop', 'desktop': 'desktop',
+  '文档': 'documents', '文档文件夹': 'documents', 'documents': 'documents',
+  '主目录': 'home', 'home': 'home',
+};
+
 const requestWorkspaceTool: ToolDefinition = {
   name: 'request_workspace',
   description: '请求用户选择工作区文件夹。当用户的请求涉及文件操作但没有设置工作区时，调用此工具让用户选择工作目录。',
@@ -2186,6 +2195,10 @@ const requestWorkspaceTool: ToolDefinition = {
         type: 'string',
         description: '向用户解释为什么需要选择工作区，例如"你想整理文件，需要先选择一个工作目录"',
       },
+      folder_hint: {
+        type: 'string',
+        description: '用户提到的文件夹名称，如"下载"、"桌面"、"文档"。工具会自动解析为完整路径',
+      },
     },
     required: ['reason'],
   },
@@ -2193,7 +2206,21 @@ const requestWorkspaceTool: ToolDefinition = {
     const reason = input.reason as string;
     const ctx = getCurrentLoopContext();
     const convId = ctx?.conversationId ?? '';
-    const result = await requestWorkspace(reason, convId);
+
+    // Resolve folder_hint to a full system path
+    const hint = (input.folder_hint as string || '').toLowerCase();
+    const key = FOLDER_HINT_MAP[hint];
+    let suggestedPath: string | undefined;
+    if (key) {
+      try {
+        const sysInfo = await getSystemInfoData();
+        suggestedPath = sysInfo[key];
+      } catch {
+        // Ignore — will open generic folder picker
+      }
+    }
+
+    const result = await requestWorkspace(reason, convId, suggestedPath);
     if (result) {
       return `用户已选择工作区：${result}`;
     }

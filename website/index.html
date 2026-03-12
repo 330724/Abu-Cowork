@@ -3,71 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>阿布 (Abu) - AI 桌面办公助手</title>
+    <title>Abu (阿布) - 你的 AI 桌面办公搭子</title>
+    <meta name="description" content="本地运行的 AI 桌面办公助手，你说需求，阿布干活。读文件、跑命令、写文档、做报表，全在本地完成。">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="assets/abu-avatar.png" type="image/png">
 </head>
 <body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container nav-container">
+            <a href="#" class="nav-brand">
+                <img src="assets/abu-avatar.png" alt="Abu" class="nav-logo">
+                <span class="nav-title">Abu <span class="nav-title-cn">阿布</span></span>
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="#features" class="nav-link">功能</a>
+                <a href="#screenshots" class="nav-link">预览</a>
+                <a href="#use-cases" class="nav-link">场景</a>
+                <a href="#tech" class="nav-link">架构</a>
+                <a href="#social" class="nav-link">社区</a>
+                <a href="https://github.com/PM-Shawn/Abu-Cowork" target="_blank" rel="noopener" class="nav-link nav-github">
+                    <svg class="icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                    GitHub
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </nav>
+
     <!-- Hero Section -->
     <section class="hero">
         <div class="container">
             <div class="mascot-wrapper">
-                <img src="assets/abu-avatar.png" alt="阿布吉祥物" class="mascot">
-                <span class="beta-badge">内测中</span>
+                <img src="assets/abu-avatar.png" alt="Abu 阿布" class="mascot">
             </div>
-            <h1>交给阿布就行啦 ✨</h1>
-            <p class="tagline">你的 AI 桌面办公助手，让繁琐工作变得简单</p>
-            <div class="download-buttons">
-                <!-- 替换下面的链接为你的云存储实际地址 -->
-                <a href="https://your-cloud-storage.com/abu/Abu_0.5.5_aarch64.dmg" class="btn btn-primary">
-                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-                    </svg>
-                    下载 macOS 版
+            <h1>交给阿布就行啦</h1>
+            <p class="tagline">本地运行的 AI 桌面办公助手<br>你说需求，阿布干活 — 读文件、跑命令、写文档、做报表</p>
+            <div class="hero-buttons">
+                <a href="https://github.com/PM-Shawn/Abu-Cowork/releases/latest" target="_blank" rel="noopener" class="btn btn-primary">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    下载最新版本
                 </a>
-                <a href="https://your-cloud-storage.com/abu/Abu_0.5.5_x64-setup.exe" class="btn btn-secondary">
-                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M3 12V6.75l6-1.32v6.48L3 12m17-9v8.75l-10 .15V5.21L20 3M3 13l6 .09v6.81l-6-1.15V13m17 .25V22l-10-1.91V13.1l10 .15z"/>
-                    </svg>
-                    下载 Windows 版
+                <a href="https://github.com/PM-Shawn/Abu-Cowork" target="_blank" rel="noopener" class="btn btn-secondary">
+                    <svg class="icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                    Star on GitHub
                 </a>
             </div>
-            <p class="version">当前版本: v0.5.5 内测版</p>
-            <p class="disclaimer">本应用需要文件系统和脚本执行权限以提供服务，所有操作均在本地执行，不会上传您的文件。内测版本可能存在不稳定情况，请谨慎用于重要数据。</p>
+            <div class="hero-meta">
+                <span class="meta-item">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                    macOS / Windows
+                </span>
+                <span class="meta-item">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    本地优先，数据不上传
+                </span>
+                <span class="meta-item">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+                    开源免费
+                </span>
+            </div>
         </div>
     </section>
 
     <!-- Features Section -->
-    <section class="features">
+    <section class="features" id="features">
         <div class="container">
-            <h2>功能亮点</h2>
+            <h2>核心能力</h2>
+            <p class="section-desc">不只是聊天，能自主规划、调用工具、完成复杂任务</p>
             <div class="feature-grid">
                 <div class="feature-card">
-                    <div class="feature-icon">💬</div>
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </div>
                     <h3>对话式交互</h3>
-                    <p>用自然语言描述你想做的事，阿布帮你完成。告别繁琐的手动操作，对话即指令。</p>
+                    <p>用自然语言描述需求，对话即指令。告别繁琐操作，阿布帮你搞定。</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">📁</div>
-                    <h3>文件管理</h3>
-                    <p>智能整理、批量重命名、快速查找。让你的文件井井有条，工作效率翻倍。</p>
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </div>
+                    <h3>Agent 自主执行</h3>
+                    <p>自主规划任务、调用工具、读写文件、执行命令，完成复杂工作流。</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">⚡</div>
-                    <h3>脚本执行</h3>
-                    <p>自动化执行日常任务，阿布可以帮你运行脚本、处理数据、完成重复性工作。</p>
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                    </div>
+                    <h3>Skill 技能系统</h3>
+                    <p>内置翻译、周报、代码审查、深度研究等技能，一键安装，支持自定义。</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">🔌</div>
-                    <h3>可扩展架构</h3>
-                    <p>支持 Skills、Subagents 和 MCP 协议，随时扩展新能力，让阿布越来越强大。</p>
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                    </div>
+                    <h3>MCP 工具协议</h3>
+                    <p>通过 Model Context Protocol 连接数据库、搜索引擎、GitHub 等外部服务。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    </div>
+                    <h3>沙箱安全</h3>
+                    <p>macOS Seatbelt 沙箱隔离 + 敏感路径保护 + 命令安全检查，本地数据不上传。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                    </div>
+                    <h3>多模型支持</h3>
+                    <p>支持 Claude、DeepSeek、通义千问、豆包、Moonshot、智谱等主流模型。</p>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Screenshots Section -->
-    <section class="screenshots">
+    <section class="screenshots" id="screenshots">
         <div class="container">
             <h2>产品预览</h2>
             <p class="section-desc">简洁直观的界面，强大灵活的能力</p>
@@ -80,20 +134,20 @@
             </div>
             <div class="screenshot-viewer">
                 <div class="screenshot-item active" data-index="0">
-                    <img src="assets/screenshot-home.png" alt="主界面 - 初始界面">
+                    <img src="assets/screenshot-home.png" alt="主界面 - 对话式交互">
                     <p class="screenshot-caption">对话式交互，用自然语言告诉阿布你想做什么</p>
                 </div>
                 <div class="screenshot-item" data-index="1">
-                    <img src="assets/screenshot-task.png" alt="主界面 - 任务执行">
+                    <img src="assets/screenshot-task.png" alt="任务执行">
                     <p class="screenshot-caption">智能调用工具，自动完成文件整理等复杂任务</p>
                 </div>
                 <div class="screenshot-item" data-index="2">
                     <img src="assets/screenshot-schedule.png" alt="定时任务">
-                    <p class="screenshot-caption">设定定时任务，让阿布每天自动为你工作</p>
+                    <p class="screenshot-caption">设定定时计划，让阿布每天自动为你工作</p>
                 </div>
                 <div class="screenshot-item" data-index="3">
                     <img src="assets/screenshot-toolbox.png" alt="工具箱">
-                    <p class="screenshot-caption">丰富的 Skills 和工具，按需安装扩展能力</p>
+                    <p class="screenshot-caption">丰富的 Skills、Agents 和 MCP 工具，按需安装扩展</p>
                 </div>
                 <div class="screenshot-item" data-index="4">
                     <img src="assets/screenshot-model.png" alt="自定义模型">
@@ -104,14 +158,16 @@
     </section>
 
     <!-- Use Cases Section -->
-    <section class="use-cases">
+    <section class="use-cases" id="use-cases">
         <div class="container">
             <h2>使用场景</h2>
-            <p class="section-desc">无论你是职场人、学生还是自由职业者，阿布都能帮到你</p>
+            <p class="section-desc">无论你是职场人、学生还是开发者，阿布都能帮到你</p>
             <div class="use-case-grid">
                 <div class="use-case-card">
                     <div class="use-case-header">
-                        <span class="use-case-icon">💼</span>
+                        <div class="use-case-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><polyline points="16 21 12 17 8 21"/></svg>
+                        </div>
                         <h3>通用办公</h3>
                     </div>
                     <div class="use-case-examples">
@@ -121,101 +177,179 @@
                 </div>
                 <div class="use-case-card">
                     <div class="use-case-header">
-                        <span class="use-case-icon">📊</span>
-                        <h3>数据分析</h3>
+                        <div class="use-case-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                        </div>
+                        <h3>数据处理</h3>
                     </div>
                     <div class="use-case-examples">
-                        <div class="example-item">"把这几个 CSV 文件合并成一个"</div>
-                        <div class="example-item">"统计这个文件夹里所有 Excel 的行数"</div>
+                        <div class="example-item">"把这几个 CSV 文件合并成一个 Excel"</div>
+                        <div class="example-item">"统计这个文件夹里所有表格的行数和列数"</div>
                     </div>
                 </div>
                 <div class="use-case-card">
                     <div class="use-case-header">
-                        <span class="use-case-icon">✍️</span>
+                        <div class="use-case-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </div>
                         <h3>内容创作</h3>
                     </div>
                     <div class="use-case-examples">
-                        <div class="example-item">"批量压缩素材文件夹里的图片"</div>
-                        <div class="example-item">"把这些视频按拍摄日期重命名"</div>
+                        <div class="example-item">"帮我写一份本周的项目周报"</div>
+                        <div class="example-item">"把这篇文章翻译成英文并保存"</div>
                     </div>
                 </div>
                 <div class="use-case-card">
                     <div class="use-case-header">
-                        <span class="use-case-icon">📚</span>
-                        <h3>日常学习</h3>
+                        <div class="use-case-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                        </div>
+                        <h3>开发辅助</h3>
                     </div>
                     <div class="use-case-examples">
-                        <div class="example-item">"整理我的课件，按学科分类"</div>
-                        <div class="example-item">"帮我找出所有 PDF 格式的学习资料"</div>
+                        <div class="example-item">"审查这个 PR 的代码并给出改进建议"</div>
+                        <div class="example-item">"批量重命名项目里的图片文件为 kebab-case"</div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Rating Section -->
-    <section class="rating">
+    <!-- Tech Architecture Section -->
+    <section class="tech" id="tech">
         <div class="container">
-            <h2>用户评价</h2>
-            <p class="section-desc">来自内测用户的真实反馈</p>
-            <div class="rating-wrapper">
-                <div class="rating-summary">
-                    <div class="score-badge">
-                        <span class="score-number">4.8</span>
-                        <span class="score-total">/5</span>
-                    </div>
-                    <div class="stars">★★★★★</div>
-                    <p class="rating-label">综合评分</p>
+            <h2>技术架构</h2>
+            <p class="section-desc">现代技术栈，安全可靠</p>
+            <div class="tech-grid">
+                <div class="tech-card">
+                    <div class="tech-label">桌面框架</div>
+                    <div class="tech-value">Tauri 2.0</div>
+                    <div class="tech-detail">Rust 后端，原生性能，安全沙箱</div>
                 </div>
-                <div class="reviews-list">
-                    <div class="review-item">
-                        <div class="review-header">
-                            <span class="reviewer-avatar">👨‍💼</span>
-                            <div class="reviewer-info">
-                                <span class="reviewer-name">产品经理 小王</span>
-                                <span class="review-stars">★★★★★</span>
-                            </div>
-                        </div>
-                        <p class="review-content">"终于不用手动整理文件了，对话就能搞定，太方便了！"</p>
-                    </div>
-                    <div class="review-item">
-                        <div class="review-header">
-                            <span class="reviewer-avatar">👨‍💻</span>
-                            <div class="reviewer-info">
-                                <span class="reviewer-name">开发工程师 阿杰</span>
-                                <span class="review-stars">★★★★★</span>
-                            </div>
-                        </div>
-                        <p class="review-content">"执行脚本功能很强大，日常自动化任务交给阿布就行。"</p>
-                    </div>
-                    <div class="review-item">
-                        <div class="review-header">
-                            <span class="reviewer-avatar">👩‍🎨</span>
-                            <div class="reviewer-info">
-                                <span class="reviewer-name">设计师 小美</span>
-                                <span class="review-stars">★★★★☆</span>
-                            </div>
-                        </div>
-                        <p class="review-content">"界面简洁好看，交互很自然，期待更多功能！"</p>
-                    </div>
+                <div class="tech-card">
+                    <div class="tech-label">前端</div>
+                    <div class="tech-value">React + TypeScript</div>
+                    <div class="tech-detail">Vite 构建，TailwindCSS + shadcn/ui</div>
+                </div>
+                <div class="tech-card">
+                    <div class="tech-label">AI 集成</div>
+                    <div class="tech-value">多模型 Agent</div>
+                    <div class="tech-detail">Tool Calling + MCP 协议 + Skill 系统</div>
+                </div>
+                <div class="tech-card">
+                    <div class="tech-label">安全</div>
+                    <div class="tech-value">沙箱隔离</div>
+                    <div class="tech-detail">Seatbelt 沙箱 + 路径保护 + 命令检查</div>
+                </div>
+                <div class="tech-card">
+                    <div class="tech-label">数据</div>
+                    <div class="tech-value">本地优先</div>
+                    <div class="tech-detail">所有数据和 API Key 存储在本地</div>
+                </div>
+                <div class="tech-card">
+                    <div class="tech-label">扩展</div>
+                    <div class="tech-value">插件化架构</div>
+                    <div class="tech-detail">Skills + Subagents + MCP 按需扩展</div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Feedback Section -->
-    <section class="feedback">
+    <!-- Community / Get Started Section -->
+    <section class="community" id="community">
         <div class="container">
-            <h2>内测反馈</h2>
-            <p>扫码加入内测群，获取最新版本，反馈问题和建议</p>
-            <div class="qrcode-wrapper">
-                <img src="assets/qrcode.png" alt="内测群二维码" class="qrcode" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                <div class="qrcode-placeholder" style="display: none;">
-                    <p>二维码即将上线</p>
-                    <p>请关注后续更新</p>
+            <h2>开始使用</h2>
+            <p class="section-desc">三步上手，开始体验 AI 办公助手</p>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>下载安装</h3>
+                    <p>从 GitHub Releases 下载对应平台的安装包</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>配置模型</h3>
+                    <p>进入设置，选择 API 厂商并填入 API Key</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>开始对话</h3>
+                    <p>回到主界面，用自然语言告诉阿布你的需求</p>
                 </div>
             </div>
-            <p class="feedback-note">有任何问题或建议，欢迎在群内反馈！</p>
+            <div class="community-links">
+                <a href="https://github.com/PM-Shawn/Abu-Cowork/releases/latest" target="_blank" rel="noopener" class="btn btn-primary">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    下载最新版本
+                </a>
+                <a href="https://github.com/PM-Shawn/Abu-Cowork/issues" target="_blank" rel="noopener" class="btn btn-outline">
+                    反馈问题
+                </a>
+                <a href="https://github.com/PM-Shawn/Abu-Cowork" target="_blank" rel="noopener" class="btn btn-outline">
+                    查看源码
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Social / Community Section -->
+    <section class="social" id="social">
+        <div class="container">
+            <h2>加入社区</h2>
+            <p class="section-desc">关注动态、交流心得、一起让阿布变得更好</p>
+            <div class="social-grid">
+                <div class="social-card social-card-wechat">
+                    <div class="social-card-icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.045c.133 0 .241-.108.241-.241 0-.06-.024-.12-.04-.178l-.325-1.233a.492.492 0 0 1 .177-.554C23.016 18.514 24 16.807 24 14.896c0-3.344-3.174-5.99-7.062-6.038zm-2.534 3.21a.98.98 0 0 1 .968.983.98.98 0 0 1-.968.982.98.98 0 0 1-.969-.982.98.98 0 0 1 .969-.982zm4.857 0a.98.98 0 0 1 .969.983.98.98 0 0 1-.969.982.98.98 0 0 1-.968-.982.98.98 0 0 1 .968-.982z"/></svg>
+                    </div>
+                    <h3>微信交流群</h3>
+                    <p>扫码添加作者微信，备注「Abu」拉你进群</p>
+                    <div class="social-qr-wrapper">
+                        <img src="assets/wechat-qr.png" alt="微信二维码" class="social-qr">
+                    </div>
+                </div>
+                <div class="social-card-links">
+                    <a href="https://xhslink.com/m/8ruHynC0jPB" target="_blank" rel="noopener" class="social-link-card">
+                        <div class="social-link-icon social-link-xhs">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm3.636 7.2h-1.909c-.218 0-.436.218-.436.545v1.528h2.345l-.327 2.4h-2.018v6.327H10.91v-6.327H9.164v-2.4h1.745V7.527C10.91 5.891 12.109 4.8 13.636 4.8h2V7.2z"/></svg>
+                        </div>
+                        <div class="social-link-info">
+                            <span class="social-link-name">小红书</span>
+                            <span class="social-link-desc">关注产品动态和使用技巧分享</span>
+                        </div>
+                        <svg class="social-link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                    </a>
+                    <div class="social-link-card social-link-card-static">
+                        <div class="social-link-icon social-link-wechat-mp">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.9 11.3c0-.5.4-.9.9-.9s.9.4.9.9-.4.9-.9.9-.9-.4-.9-.9zm5.1-.9c-.5 0-.9.4-.9.9s.4.9.9.9.9-.4.9-.9-.4-.9-.9-.9zM12 2C6.48 2 2 6.48 2 12c0 1.82.49 3.53 1.34 5L2 22l5.16-1.26A9.93 9.93 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.62 0-3.13-.46-4.42-1.26l-.31-.19-3.22.79.82-3.13-.21-.33A7.95 7.95 0 0 1 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/></svg>
+                        </div>
+                        <div class="social-link-info">
+                            <span class="social-link-name">公众号</span>
+                            <span class="social-link-desc">Shawn的产品笔记</span>
+                        </div>
+                    </div>
+                    <a href="https://x.com/pmshawn_x" target="_blank" rel="noopener" class="social-link-card">
+                        <div class="social-link-icon social-link-x">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        </div>
+                        <div class="social-link-info">
+                            <span class="social-link-name">X (Twitter)</span>
+                            <span class="social-link-desc">获取最新发布和开发进展</span>
+                        </div>
+                        <svg class="social-link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                    </a>
+                    <a href="https://github.com/PM-Shawn/Abu-Cowork" target="_blank" rel="noopener" class="social-link-card">
+                        <div class="social-link-icon social-link-github">
+                            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                        </div>
+                        <div class="social-link-info">
+                            <span class="social-link-name">GitHub</span>
+                            <span class="social-link-desc">Star、Issue、贡献代码</span>
+                        </div>
+                        <svg class="social-link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                    </a>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -223,44 +357,49 @@
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
-                <p>&copy; 2026 阿布 (Abu). All rights reserved.</p>
+                <div class="footer-brand">
+                    <img src="assets/abu-avatar.png" alt="Abu" class="footer-logo">
+                    <span>Abu (阿布)</span>
+                </div>
+                <div class="footer-links">
+                    <a href="https://github.com/PM-Shawn/Abu-Cowork" target="_blank" rel="noopener">GitHub</a>
+                    <a href="https://github.com/PM-Shawn/Abu-Cowork/releases" target="_blank" rel="noopener">Releases</a>
+                    <a href="https://github.com/PM-Shawn/Abu-Cowork/issues" target="_blank" rel="noopener">Issues</a>
+                    <a href="https://github.com/PM-Shawn/Abu-Cowork/blob/main/LICENSE" target="_blank" rel="noopener">License</a>
+                </div>
+                <p class="footer-copy">&copy; 2026 Abu (阿布). Open source with Abu License.</p>
             </div>
         </div>
     </footer>
 
-    <!-- QR Code Modal -->
-    <div class="modal-overlay" id="qrcodeModal" onclick="closeQrcodeModal(event)">
-        <div class="modal-content">
-            <button class="modal-close" onclick="closeQrcodeModal(event)">&times;</button>
-            <h3>扫码加入内测群</h3>
-            <p>扫描下方二维码添加微信，获取最新安装包</p>
-            <img src="assets/qrcode.png" alt="微信二维码" class="modal-qrcode" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="qrcode-placeholder" style="display: none;">
-                <p>二维码即将上线</p>
-                <p>请关注后续更新</p>
-            </div>
-            <p class="modal-hint">内测期间通过群内获取安装包</p>
-        </div>
-    </div>
-
     <script>
-        function openQrcodeModal() {
-            document.getElementById('qrcodeModal').classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeQrcodeModal(e) {
-            if (e.target === document.getElementById('qrcodeModal') || e.target.classList.contains('modal-close')) {
-                document.getElementById('qrcodeModal').classList.remove('active');
-                document.body.style.overflow = '';
+        // Navbar scroll effect
+        let lastScroll = 0;
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            const currentScroll = window.scrollY;
+            if (currentScroll > 60) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
             }
-        }
+            lastScroll = currentScroll;
+        });
 
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                document.getElementById('qrcodeModal').classList.remove('active');
-                document.body.style.overflow = '';
-            }
+        // Mobile nav toggle
+        const navToggle = document.getElementById('navToggle');
+        const navLinks = document.getElementById('navLinks');
+        navToggle.addEventListener('click', () => {
+            navLinks.classList.toggle('open');
+            navToggle.classList.toggle('open');
+        });
+
+        // Close mobile nav on link click
+        navLinks.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.classList.remove('open');
+                navToggle.classList.remove('open');
+            });
         });
 
         // Screenshot tabs
@@ -276,11 +415,16 @@
 
         // Smooth scroll for anchor links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
+            anchor.addEventListener('click', function(e) {
+                const href = this.getAttribute('href');
+                if (href === '#') return;
                 e.preventDefault();
-                document.querySelector(this.getAttribute('href')).scrollIntoView({
-                    behavior: 'smooth'
-                });
+                const target = document.querySelector(href);
+                if (target) {
+                    const offset = navbar.offsetHeight + 16;
+                    const top = target.getBoundingClientRect().top + window.scrollY - offset;
+                    window.scrollTo({ top, behavior: 'smooth' });
+                }
             });
         });
     </script>

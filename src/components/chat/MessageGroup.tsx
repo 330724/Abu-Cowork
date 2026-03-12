@@ -101,9 +101,7 @@ export default function MessageGroup({ messages }: MessageGroupProps) {
       if (msg.role !== 'assistant') continue;
       const text = typeof msg.content === 'string'
         ? msg.content
-        : msg.content.find((c) => c.type === 'text')?.type === 'text'
-          ? (msg.content.find((c) => c.type === 'text') as { type: 'text'; text: string }).text
-          : '';
+        : getTextContent(msg.content);
       if (!text) continue;
       const fromText = parseSourcesFromText(text);
       if (fromText && fromText.length > 0) return fromText;

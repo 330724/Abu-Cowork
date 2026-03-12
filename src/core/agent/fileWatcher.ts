@@ -6,7 +6,7 @@
  * Uses Tauri's @tauri-apps/plugin-fs watch API.
  */
 
-import { watch, readTextFile, writeTextFile, type UnwatchFn } from '@tauri-apps/plugin-fs';
+import { watch, readTextFile, writeTextFile, exists, type UnwatchFn } from '@tauri-apps/plugin-fs';
 import { homeDir } from '@tauri-apps/api/path';
 import { ensureParentDir, joinPath, getBaseName } from '../../utils/pathUtils';
 import { runAgentLoop } from './agentLoop';
@@ -108,6 +108,14 @@ async function startWatcher(rule: FileWatchRule): Promise<void> {
   if (activeWatchers.has(rule.id)) return;
 
   try {
+    // Validate path exists before creating a watcher resource to avoid
+    // Tauri plugin-fs "resource id is invalid" errors on non-existent paths
+    const pathExists = await exists(rule.path);
+    if (!pathExists) {
+      console.warn(`[FileWatcher] Path does not exist, skipping rule ${rule.id}: ${rule.path}`);
+      return;
+    }
+
     const unwatch = await watch(rule.path, (event) => {
       const kind = event.type;
       // Determine if event matches rule

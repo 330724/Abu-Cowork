@@ -11,6 +11,11 @@ import { useSettingsStore } from '@/stores/settingsStore';
 // TODO: Replace with actual R2/CDN URL when deployed
 const UPDATE_CHECK_URL = 'https://abu-releases.your-domain.com/version.json';
 
+/** Guard: skip network call if the URL is still a placeholder */
+function isPlaceholderUrl(url: string): boolean {
+  return url.includes('your-domain.com') || url.includes('example.com');
+}
+
 // 24 hours in milliseconds
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
@@ -74,13 +79,26 @@ export async function checkForUpdate(force = false): Promise<UpdateInfo | null> 
     }
   }
 
+  // Skip if the update URL is still a placeholder to avoid plugin-http resource errors
+  if (isPlaceholderUrl(UPDATE_CHECK_URL)) {
+    return null;
+  }
+
   store.setUpdateChecking(true);
 
   try {
-    const response = await fetch(UPDATE_CHECK_URL, {
-      method: 'GET',
-      connectTimeout: 10000,
-    });
+    // Wrap fetch in an inner try-catch to guard against plugin-http
+    // resource cleanup errors that escape the outer catch
+    let response: Awaited<ReturnType<typeof fetch>>;
+    try {
+      response = await fetch(UPDATE_CHECK_URL, {
+        method: 'GET',
+        connectTimeout: 10000,
+      });
+    } catch {
+      // Network/DNS/resource errors from plugin-http — silently skip
+      return null;
+    }
 
     if (!response.ok) {
       console.warn(`[Update] Check failed: HTTP ${response.status}`);

@@ -129,9 +129,24 @@ function App() {
 
   // Check for updates on startup (throttled to once per 24h)
   useEffect(() => {
-    checkForUpdate().catch((err) => {
+    // Use void to suppress floating promise lint; errors are caught internally
+    void checkForUpdate().catch((err) => {
       console.warn('[App] Update check error:', err);
     });
+  }, []);
+
+  // Catch unhandled rejections from Tauri plugin resource cleanup
+  // (e.g., plugin-http fetch to unreachable URLs, plugin-fs watch on deleted paths)
+  useEffect(() => {
+    const handler = (e: PromiseRejectionEvent) => {
+      const msg = String(e.reason);
+      if (msg.includes('resource id') && msg.includes('is invalid')) {
+        console.warn('[App] Suppressed Tauri resource cleanup error:', msg);
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('unhandledrejection', handler);
+    return () => window.removeEventListener('unhandledrejection', handler);
   }, []);
 
   // Hide native title bar text on macOS (overlay mode — title shown in sidebar instead)

@@ -98,7 +98,11 @@ export default function ChatView() {
 
   const handleWorkspaceSelect = async () => {
     try {
-      const selected = await openDialog({ directory: true, multiple: false });
+      const selected = await openDialog({
+        directory: true,
+        multiple: false,
+        defaultPath: workspaceRequest?.suggestedPath || undefined,
+      });
       if (selected && typeof selected === 'string') {
         // Set workspace globally
         useWorkspaceStore.getState().setWorkspace(selected);
@@ -270,6 +274,7 @@ export default function ChatView() {
           request={{
             type: 'folder-select',
             reason: workspaceRequest.reason,
+            path: workspaceRequest.suggestedPath,
           }}
           onAllow={() => {}}
           onChooseFolder={handleWorkspaceSelect}

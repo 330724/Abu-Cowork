@@ -258,17 +258,18 @@ export default function MCPSection({ showAddForm: externalShowAddForm, onAddForm
       if (isEdit) {
         // In edit mode, use the first entry (or the entry matching editingServerName)
         const [, serverDef] = entries.find(([n]) => n === editingServerName) ?? entries[0];
+        const def = serverDef as Record<string, unknown>;
         const config: MCPServerConfig = { name: editingServerName!, enabled: true };
 
-        if ((serverDef as Record<string, unknown>).url) {
+        if (def.url && typeof def.url === 'string') {
           config.transport = 'http';
-          config.url = (serverDef as Record<string, unknown>).url as string;
-          if ((serverDef as Record<string, unknown>).headers) config.headers = (serverDef as Record<string, unknown>).headers as Record<string, string>;
+          config.url = def.url;
+          if (def.headers && typeof def.headers === 'object') config.headers = def.headers as Record<string, string>;
         } else {
           config.transport = 'stdio';
-          config.command = ((serverDef as Record<string, unknown>).command as string) ?? 'npx';
-          config.args = ((serverDef as Record<string, unknown>).args as string[]) ?? [];
-          if ((serverDef as Record<string, unknown>).env) config.env = (serverDef as Record<string, unknown>).env as Record<string, string>;
+          config.command = (typeof def.command === 'string' ? def.command : undefined) ?? 'npx';
+          config.args = (Array.isArray(def.args) ? def.args : undefined) ?? [];
+          if (def.env && typeof def.env === 'object') config.env = def.env as Record<string, string>;
         }
 
         try { await disconnectServer(config.name); } catch { /* ignore */ }
@@ -287,15 +288,15 @@ export default function MCPSection({ showAddForm: externalShowAddForm, onAddForm
           if (!firstName) firstName = name;
           const config: MCPServerConfig = { name, enabled: true };
 
-          if (serverDef.url) {
+          if (serverDef.url && typeof serverDef.url === 'string') {
             config.transport = 'http';
-            config.url = serverDef.url as string;
-            if (serverDef.headers) config.headers = serverDef.headers as Record<string, string>;
+            config.url = serverDef.url;
+            if (serverDef.headers && typeof serverDef.headers === 'object') config.headers = serverDef.headers as Record<string, string>;
           } else {
             config.transport = 'stdio';
-            config.command = (serverDef.command as string) ?? 'npx';
-            config.args = (serverDef.args as string[]) ?? [];
-            if (serverDef.env) config.env = serverDef.env as Record<string, string>;
+            config.command = (typeof serverDef.command === 'string' ? serverDef.command : undefined) ?? 'npx';
+            config.args = (Array.isArray(serverDef.args) ? serverDef.args as string[] : undefined) ?? [];
+            if (serverDef.env && typeof serverDef.env === 'object') config.env = serverDef.env as Record<string, string>;
           }
 
           addServer(config);
