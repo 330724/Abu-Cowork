@@ -11,6 +11,7 @@
 
 import { BaseAdapter } from './base';
 import type { AdapterConfig, AbuMessage, DirectReplyContext } from './types';
+import { getTauriFetch } from '../../llm/tauriFetch';
 
 export class SlackAdapter extends BaseAdapter {
   readonly config: AdapterConfig = {
@@ -91,7 +92,8 @@ export class SlackAdapter extends BaseAdapter {
       body.thread_ts = context.threadTs;
     }
 
-    const resp = await fetch('https://slack.com/api/chat.postMessage', {
+    const f = await getTauriFetch();
+    const resp = await f('https://slack.com/api/chat.postMessage', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json; charset=utf-8',

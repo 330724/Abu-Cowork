@@ -10,6 +10,7 @@
  */
 
 import type { IMPlatform } from '../../types/trigger';
+import { getTauriFetch } from '../llm/tauriFetch';
 
 interface CachedToken {
   token: string;
@@ -87,7 +88,8 @@ class TokenManager {
    * Response: { tenant_access_token, expire }  (expire is seconds, typically 7200)
    */
   private async fetchFeishuToken(appId: string, appSecret: string): Promise<CachedToken> {
-    const resp = await fetch(
+    const f = await getTauriFetch();
+    const resp = await f(
       'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal',
       {
         method: 'POST',
@@ -134,8 +136,9 @@ class TokenManager {
    * Response: { errcode, errmsg, access_token, expires_in }  (expires_in typically 7200)
    */
   private async fetchWecomToken(corpId: string, corpSecret: string): Promise<CachedToken> {
+    const f = await getTauriFetch();
     const url = `https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=${encodeURIComponent(corpId)}&corpsecret=${encodeURIComponent(corpSecret)}`;
-    const resp = await fetch(url);
+    const resp = await f(url);
 
     if (!resp.ok) {
       throw new Error(`[WeCom] Token fetch failed: HTTP ${resp.status}`);
@@ -165,7 +168,8 @@ class TokenManager {
    * Users can configure base URL in channel settings if needed.
    */
   private async fetchDchatToken(appId: string, appSecret: string): Promise<CachedToken> {
-    const resp = await fetch(
+    const f = await getTauriFetch();
+    const resp = await f(
       'https://dchat-api.xiaojukeji.com/open-apis/auth/v1/token',
       {
         method: 'POST',

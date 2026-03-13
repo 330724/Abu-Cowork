@@ -7,6 +7,7 @@
 
 import { BaseAdapter } from './base';
 import type { AdapterConfig, AbuMessage, MessageColor, DirectReplyContext } from './types';
+import { getTauriFetch } from '../../llm/tauriFetch';
 
 export class DchatAdapter extends BaseAdapter {
   readonly config: AdapterConfig = {
@@ -65,7 +66,8 @@ export class DchatAdapter extends BaseAdapter {
       ...(payload as Record<string, unknown>),
     };
 
-    const resp = await fetch(
+    const f = await getTauriFetch();
+    const resp = await f(
       'https://dchat-api.xiaojukeji.com/open-apis/message/v1/send',
       {
         method: 'POST',

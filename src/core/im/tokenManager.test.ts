@@ -3,9 +3,11 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock global fetch
+// Mock getTauriFetch to return our mockFetch
 const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
+vi.mock('../llm/tauriFetch', () => ({
+  getTauriFetch: () => Promise.resolve(mockFetch),
+}));
 
 // Import after mocking
 import { tokenManager } from './tokenManager';

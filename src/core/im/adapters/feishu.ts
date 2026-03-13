@@ -6,6 +6,7 @@
 
 import { BaseAdapter } from './base';
 import type { AdapterConfig, AbuMessage, MessageColor, DirectReplyContext } from './types';
+import { getTauriFetch } from '../../llm/tauriFetch';
 
 export class FeishuAdapter extends BaseAdapter {
   readonly config: AdapterConfig = {
@@ -84,7 +85,8 @@ export class FeishuAdapter extends BaseAdapter {
       reqBody = { ...body, receive_id: context.chatId };
     }
 
-    const resp = await fetch(url, {
+    const f = await getTauriFetch();
+    const resp = await f(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

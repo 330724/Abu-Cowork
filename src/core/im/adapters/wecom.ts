@@ -6,6 +6,7 @@
 
 import { BaseAdapter } from './base';
 import type { AdapterConfig, AbuMessage, DirectReplyContext } from './types';
+import { getTauriFetch } from '../../llm/tauriFetch';
 
 export class WecomAdapter extends BaseAdapter {
   readonly config: AdapterConfig = {
@@ -94,8 +95,9 @@ export class WecomAdapter extends BaseAdapter {
       ...payload,
     };
 
+    const f = await getTauriFetch();
     const url = `https://qyapi.weixin.qq.com/cgi-bin/appchat/send?access_token=${encodeURIComponent(token)}`;
-    const resp = await fetch(url, {
+    const resp = await f(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
