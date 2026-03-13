@@ -15,7 +15,7 @@ import { parseInboundMessage } from './inboundRouter';
 import type { NormalizedIMMessage } from './inboundRouter';
 import { resolveCapability, getCallbacksForLevel } from './authGate';
 import { sessionMapper } from './sessionMapper';
-import { sendThinking, sendFinal } from './streamingReply';
+import { sendThinking, sendFinal, addProcessingReaction } from './streamingReply';
 import type { AbuMessage } from './adapters/types';
 import type { IMChannel, IMCapabilityLevel } from '../../types/imChannel';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
@@ -114,6 +114,7 @@ class IMChannelRouter {
     capability: IMCapabilityLevel,
   ) {
     this.runningCount++;
+    let removeReaction: (() => Promise<void>) | null = null;
 
     try {
       // 1. Session resolution
@@ -146,7 +147,20 @@ class IMChannelRouter {
           .catch(() => {});
       }
 
-      replyHandle = await sendThinking(message.platform, message.replyContext);
+      // Add processing indicator: emoji reaction for Feishu/Slack, thinking message for others
+      const adapter = (await import('./adapters/registry')).getAdapter(message.platform);
+
+      if (adapter?.config.supportsMessageUpdate) {
+        // Feishu/Slack: add emoji reaction as processing indicator
+        removeReaction = await addProcessingReaction(message.platform, message.replyContext);
+        replyHandle = {
+          platform: message.platform,
+          supportsUpdate: true,
+          replyContext: message.replyContext,
+        };
+      } else {
+        replyHandle = await sendThinking(message.platform, message.replyContext);
+      }
 
       // 3. Run agent with timeout (agentLoop adds the user message internally)
 
@@ -187,6 +201,10 @@ class IMChannelRouter {
       // Best-effort error reply to user
       this.sendErrorReply(message, errorMsg).catch(() => {});
     } finally {
+      // Remove processing reaction (emoji) if it was added
+      if (removeReaction) {
+        removeReaction().catch(() => {});
+      }
       this.runningCount--;
       this.processQueue();
     }

@@ -187,3 +187,73 @@ export async function sendFinal(
     error: `no_direct_reply:${handle.platform}:${apiResult.error}`,
   };
 }
+
+// ── Feishu Emoji Reaction (processing indicator) ──
+
+const PROCESSING_EMOJI = 'Get'; // 飞书内置 "get" 表情
+
+/**
+ * Add a processing reaction (emoji) to the user's message.
+ * Returns a cleanup function that removes the reaction.
+ */
+export async function addProcessingReaction(
+  platform: IMPlatform,
+  replyContext: IMReplyContext,
+): Promise<(() => Promise<void>) | null> {
+  if (platform !== 'feishu') return null;
+
+  const messageId = replyContext.messageId;
+  if (!messageId) return null;
+
+  const creds = getChannelCredentials(platform);
+  if (!creds) return null;
+
+  try {
+    const { getTauriFetch } = await import('../llm/tauriFetch');
+    const f = await getTauriFetch();
+    const token = await tokenManager.getToken(platform, creds.appId, creds.appSecret);
+
+    const resp = await f(
+      `https://open.feishu.cn/open-apis/im/v1/messages/${messageId}/reactions`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          reaction_type: { emoji_type: PROCESSING_EMOJI },
+        }),
+      },
+    );
+
+    if (!resp.ok) return null;
+
+    const data = await resp.json() as {
+      code?: number;
+      data?: { reaction_id?: string };
+    };
+
+    if (data.code !== 0 || !data.data?.reaction_id) return null;
+
+    const reactionId = data.data.reaction_id;
+
+    // Return cleanup function
+    return async () => {
+      try {
+        const freshToken = await tokenManager.getToken(platform, creds.appId, creds.appSecret);
+        await f(
+          `https://open.feishu.cn/open-apis/im/v1/messages/${messageId}/reactions/${reactionId}`,
+          {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${freshToken}` },
+          },
+        );
+      } catch {
+        // Best-effort: don't fail if reaction removal fails
+      }
+    };
+  } catch {
+    return null;
+  }
+}

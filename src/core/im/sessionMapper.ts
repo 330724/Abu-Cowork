@@ -115,10 +115,10 @@ export class SessionMapper {
     if (message.platform === 'slack' && message.replyContext.threadTs) {
       return `slack:${message.chatId}:${message.replyContext.threadTs}`;
     }
-    // Feishu thread (reply to specific message)
-    if (message.platform === 'feishu' && message.replyContext.messageId) {
-      return `feishu:${message.chatId}:${message.replyContext.messageId}`;
-    }
+    // Feishu: only use messageId as thread key for group replies (not every message)
+    // In p2p (direct) chats, all messages belong to the same window session.
+    // In group chats, messageId changes per message — use window key too.
+    // Thread-based routing for Feishu would need parent_id (not yet parsed).
     // Others: window-based
     return this.buildWindowKey(message);
   }

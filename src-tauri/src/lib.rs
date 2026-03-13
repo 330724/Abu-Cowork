@@ -12,6 +12,7 @@ use tauri::tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState}
 mod sandbox;
 mod proxy;
 mod trigger_server;
+mod feishu_ws;
 mod window_info;
 mod computer_use;
 
@@ -1004,6 +1005,9 @@ pub fn run() {
             computer_use::request_screen_recording,
             trigger_server::start_trigger_server,
             trigger_server::get_trigger_server_port,
+            feishu_ws::start_feishu_ws,
+            feishu_ws::stop_feishu_ws,
+            feishu_ws::get_feishu_ws_status,
             update_tray_menu
         ])
         .build(tauri::generate_context!())
