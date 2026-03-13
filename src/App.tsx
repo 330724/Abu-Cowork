@@ -36,6 +36,7 @@ import { initNotifications } from '@/utils/notifications';
 import { schedulerEngine } from '@/core/scheduler/scheduler';
 import { triggerEngine } from '@/core/trigger/triggerEngine';
 import { imChannelRouter } from '@/core/im/channelRouter';
+import { startTraySync, stopTraySync } from '@/core/im/traySync';
 import { initMCPStoreSync, cleanupMCPStoreSync } from '@/stores/mcpStore';
 import { initFileWatchers, stopAllWatchers } from '@/core/agent/fileWatcher';
 import { startBehaviorSensor, stopBehaviorSensor } from '@/core/agent/behaviorSensor';
@@ -118,10 +119,12 @@ function App() {
     schedulerEngine.start();
     triggerEngine.start();
     imChannelRouter.start();
+    startTraySync();
     return () => {
       schedulerEngine.stop();
       triggerEngine.stop();
       imChannelRouter.stop();
+      stopTraySync();
     };
   }, []);
 

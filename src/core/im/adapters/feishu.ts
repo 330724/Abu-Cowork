@@ -5,7 +5,7 @@
  */
 
 import { BaseAdapter } from './base';
-import type { AdapterConfig, AbuMessage, MessageColor } from './types';
+import type { AdapterConfig, AbuMessage, MessageColor, DirectReplyContext } from './types';
 
 export class FeishuAdapter extends BaseAdapter {
   readonly config: AdapterConfig = {
@@ -48,5 +48,61 @@ export class FeishuAdapter extends BaseAdapter {
         ],
       },
     };
+  }
+
+  /**
+   * Reply via Feishu Open API.
+   *
+   * If messageId is provided, uses reply endpoint (threaded reply).
+   * Otherwise, sends a new message to the chat.
+   *
+   * API docs:
+   * - Send: POST /open-apis/im/v1/messages?receive_id_type=chat_id
+   * - Reply: POST /open-apis/im/v1/messages/:message_id/reply
+   */
+  async replyToChat(
+    token: string,
+    context: DirectReplyContext,
+    message: AbuMessage,
+  ): Promise<{ messageId?: string }> {
+    const card = this.formatOutbound(message);
+    const body = {
+      msg_type: 'interactive',
+      content: JSON.stringify((card as { card: unknown }).card),
+    };
+
+    let url: string;
+    let reqBody: unknown;
+
+    if (context.messageId) {
+      // Threaded reply
+      url = `https://open.feishu.cn/open-apis/im/v1/messages/${context.messageId}/reply`;
+      reqBody = body;
+    } else {
+      // New message to chat
+      url = `https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id`;
+      reqBody = { ...body, receive_id: context.chatId };
+    }
+
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(reqBody),
+    });
+
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => '');
+      throw new Error(`[Feishu] Reply failed: HTTP ${resp.status}: ${text}`);
+    }
+
+    const data = await resp.json() as { code?: number; msg?: string; data?: { message_id?: string } };
+    if (data.code !== 0) {
+      throw new Error(`[Feishu] Reply error: ${data.msg ?? 'unknown'}`);
+    }
+
+    return { messageId: data.data?.message_id };
   }
 }

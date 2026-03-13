@@ -95,10 +95,33 @@ export interface AdapterCredentials {
 }
 
 /**
- * Complete adapter = Outbound + optional Inbound (can implement in phases)
+ * Reply context for API-token-based direct replies (Phase 3A)
+ */
+export interface DirectReplyContext {
+  /** Target chat/channel ID */
+  chatId: string;
+  /** Original message ID (for threading) */
+  messageId?: string;
+  /** Thread timestamp (Slack) */
+  threadTs?: string;
+}
+
+/**
+ * Complete adapter = Outbound + optional Inbound + optional Direct Reply
  */
 export interface IMAdapter extends OutboundAdapter {
   inbound?: InboundAdapter;
+
+  /**
+   * Send a direct reply via platform API (requires access token).
+   * Phase 3A: token-based replies for Feishu, Slack, WeCom, D-Chat.
+   * Not all adapters implement this — check before calling.
+   */
+  replyToChat?(
+    token: string,
+    context: DirectReplyContext,
+    message: AbuMessage,
+  ): Promise<{ messageId?: string }>;
 }
 
 // ── Inbound Message (Phase 1B) ──

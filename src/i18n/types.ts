@@ -888,6 +888,12 @@ export interface TranslationDict {
     noChannels: string;
     noChannelsHint: string;
     activeSessions: string;
+    // IM conversation info bar (Phase 3C)
+    infoBarCapability: string;
+    infoBarStarted: string;
+    infoBarRounds: string;
+    infoBarEndSession: string;
+    infoBarEndConfirm: string;
   };
 
   // Window Close Dialog

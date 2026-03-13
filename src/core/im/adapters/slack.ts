@@ -10,7 +10,7 @@
  */
 
 import { BaseAdapter } from './base';
-import type { AdapterConfig, AbuMessage } from './types';
+import type { AdapterConfig, AbuMessage, DirectReplyContext } from './types';
 
 export class SlackAdapter extends BaseAdapter {
   readonly config: AdapterConfig = {
@@ -66,5 +66,50 @@ export class SlackAdapter extends BaseAdapter {
         .replace(/^- /gm, '• ')
     );
     // > blockquote stays the same (Slack also uses >)
+  }
+
+  /**
+   * Reply via Slack Web API (chat.postMessage).
+   *
+   * Uses thread_ts for threading if available.
+   * Bot token (xoxb-...) is passed as the access token.
+   *
+   * API docs: https://api.slack.com/methods/chat.postMessage
+   */
+  async replyToChat(
+    token: string,
+    context: DirectReplyContext,
+    message: AbuMessage,
+  ): Promise<{ messageId?: string }> {
+    const payload = this.formatOutbound(message) as { blocks: unknown[] };
+
+    const body: Record<string, unknown> = {
+      channel: context.chatId,
+      blocks: payload.blocks,
+    };
+    if (context.threadTs) {
+      body.thread_ts = context.threadTs;
+    }
+
+    const resp = await fetch('https://slack.com/api/chat.postMessage', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => '');
+      throw new Error(`[Slack] Reply failed: HTTP ${resp.status}: ${text}`);
+    }
+
+    const data = await resp.json() as { ok?: boolean; error?: string; ts?: string };
+    if (!data.ok) {
+      throw new Error(`[Slack] Reply error: ${data.error ?? 'unknown'}`);
+    }
+
+    return { messageId: data.ts };
   }
 }

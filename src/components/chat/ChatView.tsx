@@ -15,6 +15,7 @@ import PermissionDialog from '@/components/common/PermissionDialog';
 import CommandConfirmDialog from '@/components/common/CommandConfirmDialog';
 import { ChevronDown, Settings } from 'lucide-react';
 import abuAvatar from '@/assets/abu-avatar.png';
+import IMInfoBar from './IMInfoBar';
 
 /**
  * Groups messages by loopId for rendering.
@@ -290,6 +291,9 @@ export default function ChatView() {
           onDeny={handleWorkspaceDeny}
         />
       )}
+
+      {/* IM Channel Info Bar — show for IM conversations */}
+      {activeConv.imPlatform && <IMInfoBar conversation={activeConv} />}
 
       {/* Messages Area */}
       <div className="relative flex-1 min-h-0 overflow-y-auto" ref={containerRef}>

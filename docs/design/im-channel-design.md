@@ -7,6 +7,7 @@
 > v3.4: Phase 2 详细设计 — 话题窗口、能力等级、鉴权、流式回复、并发控制
 > v3.5: Phase 2 产品设计 — 桌面端 UI、IM 端交互、状态指示器、4 项产品决策
 > v3.6: Phase 2 全部实现 — UI 完成（设置页/侧边栏/状态条）+ 健壮性加固（超时/错误反馈/去重）+ 40 个测试文件 779 测试全通过
+> v3.7: Phase 3 全部实现 — API Token 回复（飞书/Slack/企微/D-Chat）+ "继续上次"恢复 + IM 对话详情栏 + 排队提示 + 系统托盘 IM 状态 · 41 文件 792 测试全通过
 
 ## 一、背景与目标
 
@@ -1596,6 +1597,16 @@ IM 对话和普通对话混排在同一个列表，用平台 icon + 来源标签
 | **Step 8** | 侧边栏 — IM 对话混排（平台 icon + 来源标签）+ 对话详情信息栏 | ✓ 完成 |
 | **Step 9** | 侧边栏底部 IM 状态条 + App.tsx 集成 imChannelRouter | ✓ 完成 |
 
+### Phase 3（IM 通道增强）— 已完成 ✓
+
+| 步骤 | 内容 | 状态 |
+|------|------|------|
+| **Step A** | API Token 回复 — tokenManager（缓存+刷新）+ 4 平台 replyToChat 实现 + streamingReply 升级 | ✓ 完成 |
+| **Step B** | "继续上次"恢复 — 超时提示 + 恢复确认 + 上下文摘要 + sessionMapper 增强 | ✓ 完成 |
+| **Step C** | IM 对话详情栏 — IMInfoBar 组件（平台/用户/能力/时间/轮次/结束会话）+ ChatView 集成 | ✓ 完成 |
+| **Step D** | 排队提示 — 并发超限时发送排队位置通知 | ✓ 完成 |
+| **Step E** | 系统托盘 IM 状态 — Rust update_tray_menu 命令 + traySync 前端订阅 + 动态菜单更新 | ✓ 完成 |
+
 ---
 
 ## 十、技术风险与决策
@@ -1621,6 +1632,9 @@ IM 对话和普通对话混排在同一个列表，用平台 icon + 来源标签
 | 直接回复限制 | 仅 DingTalk sessionWebhook 可直接回复 | 其他平台降级为日志记录，回复存在 Abu 会话中。完整回复需 Phase 3 API token 管理 |
 | 消息去重 | Webhook 重试可能创建重复会话 | 基于 platform:chatId:senderId:text 的内存去重，每 5 分钟清理（v3.6 加固） |
 | 错误反馈 | processMessage 出错时用户不知道 | 错误写入 channel.lastError（UI 可见）+ best-effort 错误消息回复（v3.6 加固） |
+| API Token 过期 | Token 过期后回复失败 | tokenManager 自动缓存 + 提前 10 分钟刷新 + 401 时自动 invalidate 并重新获取（v3.7） |
+| D-Chat API 端点 | 内部平台 API 地址可能变化 | tokenManager/dchat.ts 使用占位 URL，需按实际部署调整（v3.7） |
+| 托盘菜单更新频率 | store 变化频繁可能导致菜单闪烁 | traySync 使用 500ms debounce，避免频繁 IPC 调用（v3.7） |
 
 ---
 

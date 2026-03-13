@@ -5,7 +5,7 @@
  */
 
 import { BaseAdapter } from './base';
-import type { AdapterConfig, AbuMessage } from './types';
+import type { AdapterConfig, AbuMessage, DirectReplyContext } from './types';
 
 export class WecomAdapter extends BaseAdapter {
   readonly config: AdapterConfig = {
@@ -72,5 +72,45 @@ export class WecomAdapter extends BaseAdapter {
     }
     if (current) chunks.push(current);
     return chunks;
+  }
+
+  /**
+   * Reply via WeCom API (appchat/send for group, message/send for individual).
+   *
+   * Uses the group chat API (appchat/send) which sends markdown to a group.
+   * Token is the corp access_token.
+   *
+   * API docs: https://developer.work.weixin.qq.com/document/path/90248
+   */
+  async replyToChat(
+    token: string,
+    context: DirectReplyContext,
+    message: AbuMessage,
+  ): Promise<{ messageId?: string }> {
+    const payload = this.formatOutbound(message) as { msgtype: string; markdown: { content: string } };
+
+    const body = {
+      chatid: context.chatId,
+      ...payload,
+    };
+
+    const url = `https://qyapi.weixin.qq.com/cgi-bin/appchat/send?access_token=${encodeURIComponent(token)}`;
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => '');
+      throw new Error(`[WeCom] Reply failed: HTTP ${resp.status}: ${text}`);
+    }
+
+    const data = await resp.json() as { errcode?: number; errmsg?: string };
+    if (data.errcode !== 0) {
+      throw new Error(`[WeCom] Reply error: ${data.errmsg ?? 'unknown'}`);
+    }
+
+    return {};
   }
 }

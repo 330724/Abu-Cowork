@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock adapter registry
 const mockSendMessage = vi.fn();
+const mockReplyToChat = vi.fn();
 vi.mock('./adapters/registry', () => ({
   getAdapter: vi.fn((platform: string) => {
     if (platform === 'unknown') return null;
@@ -13,8 +14,29 @@ vi.mock('./adapters/registry', () => ({
         supportsMessageUpdate: platform === 'feishu' || platform === 'slack',
       },
       sendMessage: mockSendMessage,
+      replyToChat: platform !== 'dingtalk' ? mockReplyToChat : undefined,
     };
   }),
+}));
+
+// Mock tokenManager
+const mockGetToken = vi.fn();
+const mockInvalidate = vi.fn();
+vi.mock('./tokenManager', () => ({
+  tokenManager: {
+    getToken: (...args: unknown[]) => mockGetToken(...args),
+    invalidate: (...args: unknown[]) => mockInvalidate(...args),
+  },
+}));
+
+// Mock imChannelStore
+const mockGetChannelsByPlatform = vi.fn();
+vi.mock('../../stores/imChannelStore', () => ({
+  useIMChannelStore: {
+    getState: () => ({
+      getChannelsByPlatform: mockGetChannelsByPlatform,
+    }),
+  },
 }));
 
 import { sendThinking, sendFinal } from './streamingReply';
@@ -30,6 +52,9 @@ function makeContext(overrides: Partial<IMReplyContext> = {}): IMReplyContext {
 describe('sendThinking', () => {
   beforeEach(() => {
     mockSendMessage.mockReset();
+    mockReplyToChat.mockReset();
+    mockGetToken.mockReset();
+    mockGetChannelsByPlatform.mockReturnValue([]);
   });
 
   it('returns a handle with platform info', async () => {
@@ -65,15 +90,33 @@ describe('sendThinking', () => {
     expect(handle.platform).toBe('dingtalk');
   });
 
-  it('does not send if no sessionWebhook', async () => {
-    await sendThinking('feishu', makeContext({ platform: 'feishu' }));
-    expect(mockSendMessage).not.toHaveBeenCalled();
+  it('tries API token reply for feishu when no sessionWebhook', async () => {
+    mockGetChannelsByPlatform.mockReturnValue([{ enabled: true, appId: 'app1', appSecret: 'secret1' }]);
+    mockGetToken.mockResolvedValue('token123');
+    mockReplyToChat.mockResolvedValue({ messageId: 'msg1' });
+
+    const handle = await sendThinking('feishu', makeContext({ platform: 'feishu', chatId: 'chat1' }));
+    expect(mockReplyToChat).toHaveBeenCalledOnce();
+    expect(handle.placeholderMessageId).toBe('msg1');
+  });
+
+  it('does not crash if API token reply fails for thinking', async () => {
+    mockGetChannelsByPlatform.mockReturnValue([{ enabled: true, appId: 'app1', appSecret: 'secret1' }]);
+    mockGetToken.mockRejectedValue(new Error('token error'));
+
+    const handle = await sendThinking('feishu', makeContext({ platform: 'feishu', chatId: 'chat1' }));
+    expect(handle.platform).toBe('feishu');
+    // Should not throw
   });
 });
 
 describe('sendFinal', () => {
   beforeEach(() => {
     mockSendMessage.mockReset();
+    mockReplyToChat.mockReset();
+    mockGetToken.mockReset();
+    mockInvalidate.mockReset();
+    mockGetChannelsByPlatform.mockReturnValue([]);
   });
 
   it('sends via sessionWebhook successfully', async () => {
@@ -111,16 +154,65 @@ describe('sendFinal', () => {
     expect(result.error).toContain('Unknown platform');
   });
 
-  it('returns degraded success for platforms without sessionWebhook', async () => {
+  it('uses API token reply for feishu with credentials', async () => {
+    mockGetChannelsByPlatform.mockReturnValue([{ enabled: true, appId: 'app1', appSecret: 'secret1' }]);
+    mockGetToken.mockResolvedValue('token123');
+    mockReplyToChat.mockResolvedValue({ messageId: 'msg2' });
+
     const handle = {
       platform: 'feishu' as const,
       supportsUpdate: true,
-      replyContext: makeContext({ platform: 'feishu' }),
+      replyContext: makeContext({ platform: 'feishu', chatId: 'chat1', messageId: 'orig1' }),
     };
     const result = await sendFinal(handle, { content: 'Hello' });
-    // Not a hard error — reply is stored in conversation
+    expect(result.success).toBe(true);
+    expect(result.error).toBeUndefined();
+    expect(mockReplyToChat).toHaveBeenCalledOnce();
+    expect(mockGetToken).toHaveBeenCalledWith('feishu', 'app1', 'secret1');
+  });
+
+  it('falls back to degraded success if API token reply fails', async () => {
+    mockGetChannelsByPlatform.mockReturnValue([{ enabled: true, appId: 'app1', appSecret: 'secret1' }]);
+    mockGetToken.mockRejectedValue(new Error('auth 401 error'));
+
+    const handle = {
+      platform: 'feishu' as const,
+      supportsUpdate: true,
+      replyContext: makeContext({ platform: 'feishu', chatId: 'chat1' }),
+    };
+    const result = await sendFinal(handle, { content: 'Hello' });
     expect(result.success).toBe(true);
     expect(result.error).toContain('no_direct_reply');
-    expect(mockSendMessage).not.toHaveBeenCalled();
+    // Should invalidate token on auth error
+    expect(mockInvalidate).toHaveBeenCalledWith('feishu', 'app1');
+  });
+
+  it('returns degraded success when no credentials available', async () => {
+    mockGetChannelsByPlatform.mockReturnValue([]);
+
+    const handle = {
+      platform: 'feishu' as const,
+      supportsUpdate: true,
+      replyContext: makeContext({ platform: 'feishu', chatId: 'chat1' }),
+    };
+    const result = await sendFinal(handle, { content: 'Hello' });
+    expect(result.success).toBe(true);
+    expect(result.error).toContain('no_direct_reply');
+    expect(result.error).toContain('no_credentials');
+  });
+
+  it('sends via API for slack with bot token', async () => {
+    mockGetChannelsByPlatform.mockReturnValue([{ enabled: true, appId: 'slack-app', appSecret: 'xoxb-token' }]);
+    mockGetToken.mockResolvedValue('xoxb-token');
+    mockReplyToChat.mockResolvedValue({ messageId: 'ts123' });
+
+    const handle = {
+      platform: 'slack' as const,
+      supportsUpdate: true,
+      replyContext: makeContext({ platform: 'slack', channelId: 'C123', threadTs: '123.456' }),
+    };
+    const result = await sendFinal(handle, { content: 'Hello from Slack' });
+    expect(result.success).toBe(true);
+    expect(mockReplyToChat).toHaveBeenCalledOnce();
   });
 });

@@ -935,6 +935,11 @@ const zhCN: TranslationDict = {
     noChannels: '暂无 IM 频道',
     noChannelsHint: '添加一个 IM 频道，让用户通过即时通讯与 Abu 互动',
     activeSessions: '活跃会话',
+    infoBarCapability: '能力',
+    infoBarStarted: '开始',
+    infoBarRounds: '轮对话',
+    infoBarEndSession: '结束会话',
+    infoBarEndConfirm: '确定结束当前 IM 会话吗？',
   },
 
   windowClose: {

@@ -21,6 +21,10 @@ export interface SessionResolveResult {
   isNew: boolean;
   /** If user asked to recover previous session */
   isRecovered?: boolean;
+  /** If there's a previous session that can be recovered (hint the user) */
+  hasRecoverableSession?: boolean;
+  /** Brief context of the recoverable session */
+  recoverableContext?: string;
 }
 
 const CONTINUE_PATTERNS = [
@@ -56,9 +60,10 @@ export class SessionMapper {
           lastActiveAt: Date.now(),
           capability,
         };
+        const context = this.getSessionContext(prev.conversationId);
         store.upsertSession(prev.key, recovered);
         this.previousSessions.delete(this.buildWindowKey(message));
-        return { session: recovered, isNew: false, isRecovered: true };
+        return { session: recovered, isNew: false, isRecovered: true, recoverableContext: context };
       }
     }
 
@@ -84,6 +89,20 @@ export class SessionMapper {
     // Create new session
     const newSession = this.createSession(message, channel, capability);
     store.upsertSession(sessionKey, newSession);
+
+    // Check if there's a recoverable previous session to hint the user
+    const windowKey = this.buildWindowKey(message);
+    const prev = this.previousSessions.get(windowKey);
+    if (prev) {
+      const context = this.getSessionContext(prev.conversationId);
+      return {
+        session: newSession,
+        isNew: true,
+        hasRecoverableSession: true,
+        recoverableContext: context,
+      };
+    }
+
     return { session: newSession, isNew: true };
   }
 
@@ -142,6 +161,34 @@ export class SessionMapper {
       chatId: message.chatId,
       chatName: message.chatName,
     };
+  }
+
+  /**
+   * Extract a brief context summary from a conversation (first user message + last AI message).
+   */
+  private getSessionContext(conversationId: string): string {
+    const conversations = useChatStore.getState().conversations;
+    if (!conversations) return '';
+    const conv = conversations[conversationId];
+    if (!conv) return '';
+
+    const userMsgs = conv.messages.filter((m) => m.role === 'user');
+    const aiMsgs = conv.messages.filter((m) => m.role === 'assistant');
+
+    const firstUser = userMsgs[0];
+    const lastAI = aiMsgs[aiMsgs.length - 1];
+
+    const parts: string[] = [];
+    if (firstUser) {
+      const text = typeof firstUser.content === 'string' ? firstUser.content : '';
+      parts.push(text.slice(0, 50));
+    }
+    if (lastAI) {
+      const text = typeof lastAI.content === 'string' ? lastAI.content : '';
+      parts.push(text.slice(0, 50));
+    }
+
+    return parts.join(' → ') || '(无上下文)';
   }
 
   private isContinueRequest(text: string): boolean {

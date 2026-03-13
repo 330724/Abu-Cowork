@@ -934,6 +934,11 @@ const enUS: TranslationDict = {
     noChannels: 'No IM Channels',
     noChannelsHint: 'Add an IM channel to let users interact with Abu via instant messaging',
     activeSessions: 'Active Sessions',
+    infoBarCapability: 'Capability',
+    infoBarStarted: 'Started',
+    infoBarRounds: 'rounds',
+    infoBarEndSession: 'End Session',
+    infoBarEndConfirm: 'End this IM session?',
   },
 
   windowClose: {

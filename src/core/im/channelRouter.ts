@@ -94,6 +94,14 @@ class IMChannelRouter {
     if (this.runningCount >= MAX_CONCURRENT_IM) {
       console.log('[IMChannel] Concurrency limit reached, queueing message');
       this.queuedMessages.push({ message, channelId: channel.id });
+      // Best-effort: notify user they're in queue
+      const queuePos = this.queuedMessages.length;
+      const queueMsg: AbuMessage = {
+        content: `收到！当前有 ${this.runningCount} 个请求正在处理，你的请求已排队（第 ${queuePos} 位），请稍候。`,
+      };
+      sendThinking(message.platform, message.replyContext)
+        .then((h) => sendFinal(h, queueMsg))
+        .catch(() => {});
       return;
     }
 
@@ -109,14 +117,36 @@ class IMChannelRouter {
 
     try {
       // 1. Session resolution
-      const { session, isRecovered } = sessionMapper.resolve(message, channel, capability);
+      const resolveResult = sessionMapper.resolve(message, channel, capability);
+      const { session, isRecovered, hasRecoverableSession, recoverableContext } = resolveResult;
 
-      // 2. Send thinking acknowledgment
-      const replyHandle = await sendThinking(message.platform, message.replyContext);
+      // 2. Send thinking acknowledgment (or recovery/hint messages)
+      let replyHandle;
 
       if (isRecovered) {
+        // Send recovery confirmation
+        const confirmMsg: AbuMessage = {
+          content: `已恢复上次对话上下文（${recoverableContext ?? ''}）。请继续。`,
+        };
+        replyHandle = await sendThinking(message.platform, message.replyContext);
+        await sendFinal(replyHandle, confirmMsg);
+        useIMChannelStore.getState().setChannelStatus(channel.id, 'connected');
         console.log(`[IMChannel] Recovered session for ${message.senderName}`);
+        return; // "继续上次" is not a real question — just confirm and wait for next message
       }
+
+      if (hasRecoverableSession) {
+        // Hint the user that they can recover
+        const hintMsg: AbuMessage = {
+          content: `上一个话题已结束。回复"继续上次"可恢复上下文，或直接描述新的问题。`,
+        };
+        // Send hint as a side-effect, don't block main flow
+        sendThinking(message.platform, message.replyContext)
+          .then((h) => sendFinal(h, hintMsg))
+          .catch(() => {});
+      }
+
+      replyHandle = await sendThinking(message.platform, message.replyContext);
 
       // 3. Run agent with timeout (agentLoop adds the user message internally)
 
