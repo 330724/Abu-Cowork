@@ -6,10 +6,15 @@ import {
   notifyTriggerCompleted,
   notifyTriggerError,
 } from '../../utils/notifications';
-import type { Trigger, TriggerEventPayload } from '../../types/trigger';
+import { outputSender } from '../im/outputSender';
+import type { OutputContext } from '../im/adapters/types';
+import type { Trigger, TriggerEventPayload, IMReplyContext, IMPlatform } from '../../types/trigger';
+import { parseInboundMessage } from '../im/inboundRouter';
+import type { NormalizedIMMessage } from '../im/inboundRouter';
 import { getI18n } from '../../i18n';
 import type { ConfirmationInfo, FilePermissionCallback } from '../tools/registry';
 import { usePermissionStore } from '../../stores/permissionStore';
+import { useIMChannelStore } from '../../stores/imChannelStore';
 import { authorizeWorkspace } from '../tools/pathSafety';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
@@ -67,10 +72,12 @@ class TriggerEngine {
   private runningTriggers = new Set<string>();
   private debounceCache = new Map<string, number>(); // "triggerId:hash" → timestamp
   private unlistenHttp: UnlistenFn | null = null;
+  private unlistenIM: UnlistenFn | null = null;
   private debounceCleanupInterval: ReturnType<typeof setInterval> | null = null;
   private serverPort: number | null = null;
   private fileWatchers = new Map<string, UnwatchFn>(); // triggerId → unwatch
   private cronTimers = new Map<string, ReturnType<typeof setInterval>>(); // triggerId → timer
+  private imTriggersMap = new Map<string, Set<string>>(); // "platform" → Set<triggerId>
   private unsubscribeStore: (() => void) | null = null;
 
   async start() {
@@ -105,7 +112,16 @@ class TriggerEngine {
       }
     );
 
-    // Start file watchers and cron timers for existing triggers
+    // Listen for IM inbound events from Rust (Phase 1B)
+    this.unlistenIM = await listen<{ platform: string; payload: Record<string, unknown> }>(
+      'im-inbound-event',
+      (event) => {
+        const { platform, payload } = event.payload;
+        this.handleIMEvent(platform, payload);
+      }
+    );
+
+    // Start file watchers, cron timers, and IM listeners for existing triggers
     this.setupSourceWatchers();
 
     // Subscribe to store changes to manage file/cron watchers dynamically
@@ -162,6 +178,8 @@ class TriggerEngine {
   stop() {
     this.unlistenHttp?.();
     this.unlistenHttp = null;
+    this.unlistenIM?.();
+    this.unlistenIM = null;
 
     if (this.debounceCleanupInterval) {
       clearInterval(this.debounceCleanupInterval);
@@ -188,6 +206,7 @@ class TriggerEngine {
 
     this.runningTriggers.clear();
     this.debounceCache.clear();
+    this.imTriggersMap.clear();
     this.serverPort = null;
 
     console.log('[Trigger] Engine stopped');
@@ -314,12 +333,20 @@ class TriggerEngine {
     }
 
     try {
+      // runAgentLoop returns Promise<void> — no polling needed
       await runAgentLoop(conversationId, prompt, {
         commandConfirmCallback: autoDenyConfirmation,
         filePermissionCallback: autoFilePermission,
       });
 
       useTriggerStore.getState().completeRun(trigger.id, runId);
+
+      // Output push — send results to IM platform or reply to source
+      if (trigger.output?.enabled) {
+        const replyContext = (payload as TriggerEventPayload & { _replyContext?: IMReplyContext })._replyContext;
+        await this.pushOutput(trigger, runId, conversationId, payload, replyContext);
+      }
+
       notifyTriggerCompleted(trigger.name);
       const t = getI18n();
       useToastStore.getState().addToast({
@@ -338,6 +365,57 @@ class TriggerEngine {
         message: errorMsg.slice(0, 100),
       });
       console.error(`[Trigger] Error: ${trigger.name}`, err);
+    }
+  }
+
+  // ── Output push ──
+
+  private async pushOutput(
+    trigger: Trigger,
+    runId: string,
+    conversationId: string,
+    payload: TriggerEventPayload,
+    replyContext?: IMReplyContext,
+  ) {
+    if (!trigger.output) return;
+
+    useTriggerStore.getState().updateRunOutput(trigger.id, runId, 'pending');
+
+    const startedAt = useTriggerStore
+      .getState()
+      .triggers[trigger.id]?.runs.find((r) => r.id === runId)?.startedAt;
+    const runTimeMs = startedAt ? Date.now() - startedAt : 0;
+    const runTimeStr = runTimeMs > 0 ? `${Math.round(runTimeMs / 1000)}s` : '';
+
+    const context: OutputContext = {
+      triggerName: trigger.name,
+      eventSummary:
+        typeof payload.data?.content === 'string'
+          ? payload.data.content
+          : JSON.stringify(payload.data).slice(0, 200),
+      aiResponse: '', // filled by buildMessage
+      runTime: runTimeStr,
+      timestamp: new Date().toLocaleString('zh-CN'),
+      eventData: JSON.stringify(payload.data),
+    };
+
+    const message = outputSender.buildMessage(conversationId, trigger.output, context);
+    const { success, error } = await outputSender.send(trigger.output, message, replyContext);
+
+    useTriggerStore
+      .getState()
+      .updateRunOutput(trigger.id, runId, success ? 'sent' : 'failed', error);
+
+    if (!success) {
+      console.warn(`[Trigger] Output push failed for ${trigger.name}: ${error}`);
+      const t = getI18n();
+      useToastStore.getState().addToast({
+        type: 'error',
+        title: t.trigger.triggerError.replace('{name}', trigger.name),
+        message: error?.slice(0, 100),
+      });
+    } else {
+      console.log(`[Trigger] Output pushed: ${trigger.name} → ${trigger.output.platform}`);
     }
   }
 
@@ -434,16 +512,18 @@ class TriggerEngine {
     }
   }
 
-  /** Start a file watcher or cron timer for a trigger. Safe to call multiple times. */
+  /** Start a file watcher, cron timer, or IM listener for a trigger. Safe to call multiple times. */
   startSourceWatcher(trigger: Trigger) {
     if (trigger.source.type === 'file') {
       this.startFileWatcher(trigger);
     } else if (trigger.source.type === 'cron') {
       this.startCronTimer(trigger);
+    } else if (trigger.source.type === 'im') {
+      this.registerIMTrigger(trigger);
     }
   }
 
-  /** Stop a file watcher or cron timer for a trigger. */
+  /** Stop a file watcher, cron timer, or IM listener for a trigger. */
   stopSourceWatcher(triggerId: string) {
     const unwatch = this.fileWatchers.get(triggerId);
     if (unwatch) {
@@ -457,6 +537,7 @@ class TriggerEngine {
       this.cronTimers.delete(triggerId);
       console.log(`[Trigger] Stopped cron timer: ${triggerId}`);
     }
+    this.unregisterIMTrigger(triggerId);
   }
 
   private async startFileWatcher(trigger: Trigger) {
@@ -537,6 +618,102 @@ class TriggerEngine {
 
     this.cronTimers.set(trigger.id, timer);
     console.log(`[Trigger] Cron timer started: ${trigger.name} every ${trigger.source.intervalSeconds}s`);
+  }
+
+  // ── IM source (Phase 1B) ──
+
+  /** Register a trigger to receive IM messages for its platform */
+  private registerIMTrigger(trigger: Trigger) {
+    if (trigger.source.type !== 'im') return;
+    const platform = trigger.source.platform;
+    if (!this.imTriggersMap.has(platform)) {
+      this.imTriggersMap.set(platform, new Set());
+    }
+    this.imTriggersMap.get(platform)!.add(trigger.id);
+    console.log(`[Trigger] IM listener registered: ${trigger.name} → ${platform}`);
+  }
+
+  /** Unregister a trigger from IM messages */
+  private unregisterIMTrigger(triggerId: string) {
+    for (const [platform, triggerIds] of this.imTriggersMap) {
+      if (triggerIds.delete(triggerId)) {
+        console.log(`[Trigger] IM listener unregistered: ${triggerId} from ${platform}`);
+        if (triggerIds.size === 0) {
+          this.imTriggersMap.delete(platform);
+        }
+      }
+    }
+  }
+
+  /**
+   * Handle an inbound IM message from Rust trigger_server.
+   * Finds matching IM-source triggers and dispatches events.
+   */
+  private handleIMEvent(platform: string, rawPayload: Record<string, unknown>) {
+    // If an IM channel is configured for this platform, let channelRouter handle it
+    // to avoid duplicate processing of the same message
+    const imChannels = useIMChannelStore.getState().getChannelsByPlatform(platform as IMPlatform);
+    if (imChannels.some((c) => c.enabled)) {
+      return; // Handled by imChannelRouter
+    }
+
+    const triggerIds = this.imTriggersMap.get(platform);
+    if (!triggerIds || triggerIds.size === 0) {
+      console.log(`[Trigger] No IM triggers for platform: ${platform}`);
+      return;
+    }
+
+    // Parse platform-specific payload into normalized message
+    const message = parseInboundMessage(platform, rawPayload);
+    if (!message) {
+      console.log(`[Trigger] Could not parse IM message from ${platform}`);
+      return;
+    }
+
+    const store = useTriggerStore.getState();
+
+    for (const triggerId of triggerIds) {
+      const trigger = store.triggers[triggerId];
+      if (!trigger || trigger.status !== 'active') continue;
+      if (trigger.source.type !== 'im') continue;
+
+      // Apply listenScope filter
+      if (!this.matchIMScope(trigger.source.listenScope, message)) {
+        continue;
+      }
+
+      // Build trigger event payload with IM message data + reply context
+      const payload: TriggerEventPayload & { _replyContext?: IMReplyContext } = {
+        data: {
+          platform: message.platform,
+          sender: message.senderName,
+          senderId: message.senderId,
+          text: message.text,
+          chatId: message.chatId,
+          chatName: message.chatName,
+          isDirect: message.isDirect,
+          isMention: message.isMention,
+        },
+        _replyContext: message.replyContext,
+      };
+
+      this.handleEvent(triggerId, payload);
+    }
+  }
+
+  /** Check if a message matches the IM trigger's listen scope */
+  private matchIMScope(
+    scope: 'all' | 'mention_only' | 'direct_only',
+    message: NormalizedIMMessage,
+  ): boolean {
+    switch (scope) {
+      case 'all':
+        return true;
+      case 'mention_only':
+        return message.isMention || message.isDirect;
+      case 'direct_only':
+        return message.isDirect;
+    }
   }
 
   isTriggerRunning(triggerId: string): boolean {

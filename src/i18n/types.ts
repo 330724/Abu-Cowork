@@ -814,6 +814,80 @@ export interface TranslationDict {
     testTrigger: string;
     testTriggerSent: string;
     conversationDeleted: string;
+    // Output config
+    outputConfig: string;
+    enableOutput: string;
+    outputPlatform: string;
+    webhookUrl: string;
+    webhookUrlPlaceholder: string;
+    customHeaders: string;
+    customHeadersPlaceholder: string;
+    testPush: string;
+    testPushSuccess: string;
+    testPushFailed: string;
+    extractMode: string;
+    extractLastMessage: string;
+    extractFull: string;
+    extractTemplate: string;
+    templatePlaceholder: string;
+    templateVariables: string;
+    outputSent: string;
+    outputFailed: string;
+    outputRetry: string;
+    // Phase 1B: IM source
+    imSource: string;
+    imPlatform: string;
+    imAppId: string;
+    imAppIdPlaceholder: string;
+    imAppSecret: string;
+    imAppSecretPlaceholder: string;
+    imListenScope: string;
+    imScopeAll: string;
+    imScopeMentionOnly: string;
+    imScopeDirectOnly: string;
+    imWebhookUrl: string;
+    imWebhookUrlHint: string;
+    outputTargetWebhook: string;
+    outputTargetReplySource: string;
+  };
+
+  // IM Channel Settings
+  imChannel: {
+    title: string;
+    description: string;
+    addChannel: string;
+    editChannel: string;
+    channelName: string;
+    channelNamePlaceholder: string;
+    platform: string;
+    appId: string;
+    appIdPlaceholder: string;
+    appSecret: string;
+    appSecretPlaceholder: string;
+    capability: string;
+    capabilityChatOnly: string;
+    capabilityReadTools: string;
+    capabilitySafeTools: string;
+    capabilityFull: string;
+    allowedUsers: string;
+    allowedUsersPlaceholder: string;
+    allowedUsersHint: string;
+    workspacePaths: string;
+    workspacePathsPlaceholder: string;
+    sessionTimeout: string;
+    sessionTimeoutMinutes: string;
+    maxRounds: string;
+    webhookUrl: string;
+    webhookUrlHint: string;
+    statusConnected: string;
+    statusDisconnected: string;
+    statusError: string;
+    enable: string;
+    disable: string;
+    deleteConfirm: string;
+    noChannels: string;
+    noChannelsHint: string;
+    activeSessions: string;
   };
 
   // Window Close Dialog

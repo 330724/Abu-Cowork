@@ -99,7 +99,7 @@ interface ChatState {
 }
 
 interface ChatActions {
-  createConversation: (workspacePath?: string | null, options?: { scheduledTaskId?: string; triggerId?: string; skipActivate?: boolean }) => string;
+  createConversation: (workspacePath?: string | null, options?: { scheduledTaskId?: string; triggerId?: string; imChannelId?: string; imPlatform?: string; skipActivate?: boolean }) => string;
   startNewConversation: () => void;
   switchConversation: (id: string) => void;
   setConversationWorkspace: (convId: string, path: string | null) => void;
@@ -175,6 +175,7 @@ export const useChatStore = create<ChatStore>()(
             workspacePath: workspacePath ?? null,
             ...(options?.scheduledTaskId ? { scheduledTaskId: options.scheduledTaskId } : {}),
             ...(options?.triggerId ? { triggerId: options.triggerId } : {}),
+            ...(options?.imChannelId ? { imChannelId: options.imChannelId, imPlatform: options.imPlatform } : {}),
           };
           if (!options?.skipActivate) {
             state.activeConversationId = id;

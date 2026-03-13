@@ -7,7 +7,7 @@
 
 // ── Trigger Source ──
 
-export type TriggerSourceType = 'http' | 'file' | 'cron';
+export type TriggerSourceType = 'http' | 'file' | 'cron' | 'im';
 
 export interface HttpSource {
   type: 'http';
@@ -30,7 +30,23 @@ export interface CronSource {
   intervalSeconds: number;
 }
 
-export type TriggerSource = HttpSource | FileSource | CronSource;
+export type IMPlatform = 'dchat' | 'feishu' | 'dingtalk' | 'wecom' | 'slack';
+
+export type IMListenScope = 'all' | 'mention_only' | 'direct_only';
+
+export interface IMSource {
+  type: 'im';
+  /** IM platform */
+  platform: IMPlatform;
+  /** App ID for authentication (used by platform webhook verification) */
+  appId: string;
+  /** App Secret for authentication */
+  appSecret: string;
+  /** Listening scope: all messages, @mentions only, or direct messages only */
+  listenScope: IMListenScope;
+}
+
+export type TriggerSource = HttpSource | FileSource | CronSource | IMSource;
 
 // ── Filter ──
 
@@ -75,9 +91,31 @@ export interface TriggerAction {
   workspacePath?: string;
 }
 
+// ── Output Config ──
+
+export type OutputPlatform = 'dchat' | 'feishu' | 'dingtalk' | 'wecom' | 'slack' | 'custom';
+
+export type OutputExtractMode = 'last_message' | 'full' | 'custom_template';
+
+export interface TriggerOutput {
+  enabled: boolean;
+  /** Output target: webhook sends to URL, reply_source replies to the IM that triggered */
+  target: 'webhook' | 'reply_source';
+  /** Platform (required when target='webhook') */
+  platform?: OutputPlatform;
+  /** Webhook URL (required when target='webhook') */
+  webhookUrl?: string;
+  extractMode: OutputExtractMode;
+  customTemplate?: string;
+  /** Custom HTTP headers (for 'custom' platform, e.g. Authorization) */
+  customHeaders?: Record<string, string>;
+}
+
 // ── Run History ──
 
 export type TriggerRunStatus = 'running' | 'completed' | 'error' | 'filtered' | 'debounced';
+
+export type TriggerOutputStatus = 'pending' | 'sent' | 'failed';
 
 export interface TriggerRun {
   id: string;
@@ -90,6 +128,31 @@ export interface TriggerRun {
   /** Truncated event summary for display */
   eventSummary?: string;
   error?: string;
+  /** Output push status */
+  outputStatus?: TriggerOutputStatus;
+  outputError?: string;
+  outputSentAt?: number;
+  /** Reply context for reply_source output (Phase 1B) */
+  replyContext?: IMReplyContext;
+}
+
+/** Context needed to reply back to the IM source */
+export interface IMReplyContext {
+  platform: IMPlatform;
+  /** D-Chat: vchannel ID */
+  vchannelId?: string;
+  /** Feishu: chat ID for replying */
+  chatId?: string;
+  /** Feishu: original message ID for threading */
+  messageId?: string;
+  /** DingTalk: session webhook URL (expires in 1h) */
+  sessionWebhook?: string;
+  /** Slack: channel ID */
+  channelId?: string;
+  /** Slack: thread timestamp for threading */
+  threadTs?: string;
+  /** WeCom: chat ID */
+  chatid?: string;
 }
 
 // ── Main Trigger ──
@@ -106,6 +169,8 @@ export interface Trigger {
   action: TriggerAction;
   debounce: DebounceConfig;
   quietHours?: QuietHoursConfig;
+  /** Output push config (optional) */
+  output?: TriggerOutput;
   createdAt: number;
   updatedAt: number;
   lastTriggeredAt?: number;

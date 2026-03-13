@@ -4,11 +4,14 @@ import { immer } from 'zustand/middleware/immer';
 import type {
   Trigger,
   TriggerRun,
-  TriggerRunStatus,
+  TriggerOutputStatus,
   TriggerStatus,
   TriggerSource,
+  TriggerSourceType,
   TriggerFilter,
+  TriggerFilterType,
   TriggerAction,
+  TriggerOutput,
   DebounceConfig,
   QuietHoursConfig,
 } from '../types/trigger';
@@ -49,6 +52,7 @@ interface TriggerActions {
     action: TriggerAction;
     debounce: DebounceConfig;
     quietHours?: QuietHoursConfig;
+    output?: TriggerOutput;
   }) => string;
   updateTrigger: (
     id: string,
@@ -60,6 +64,7 @@ interface TriggerActions {
       action: TriggerAction;
       debounce: DebounceConfig;
       quietHours: QuietHoursConfig | undefined;
+      output: TriggerOutput | undefined;
     }>
   ) => void;
   deleteTrigger: (id: string) => void;
@@ -73,6 +78,7 @@ interface TriggerActions {
   errorRun: (triggerId: string, runId: string, error: string) => void;
   addSkippedRun: (triggerId: string, status: 'filtered' | 'debounced', eventSummary?: string) => void;
   removeRun: (triggerId: string, runId: string) => void;
+  updateRunOutput: (triggerId: string, runId: string, status: TriggerOutputStatus, error?: string) => void;
 
   // Query
   getActiveTriggers: () => Trigger[];
@@ -109,6 +115,7 @@ export const useTriggerStore = create<TriggerStore>()(
           action: data.action,
           debounce: data.debounce,
           quietHours: data.quietHours,
+          output: data.output,
           createdAt: now,
           updatedAt: now,
           runs: [],
@@ -131,6 +138,7 @@ export const useTriggerStore = create<TriggerStore>()(
           if (data.action !== undefined) trigger.action = data.action;
           if (data.debounce !== undefined) trigger.debounce = data.debounce;
           if (data.quietHours !== undefined) trigger.quietHours = data.quietHours;
+          if (data.output !== undefined) trigger.output = data.output;
           trigger.updatedAt = Date.now();
         });
       },
@@ -237,6 +245,19 @@ export const useTriggerStore = create<TriggerStore>()(
         });
       },
 
+      updateRunOutput: (triggerId, runId, status, error) => {
+        set((state) => {
+          const trigger = state.triggers[triggerId];
+          if (!trigger) return;
+          const run = trigger.runs.find((r) => r.id === runId);
+          if (run) {
+            run.outputStatus = status;
+            if (status === 'sent') run.outputSentAt = Date.now();
+            if (error) run.outputError = error;
+          }
+        });
+      },
+
       // Query
       getActiveTriggers: () => {
         const { triggers } = get();
@@ -273,10 +294,18 @@ export const useTriggerStore = create<TriggerStore>()(
     })),
     {
       name: 'abu-triggers',
-      version: 1,
+      version: 2,
       partialize: (state) => ({
         triggers: state.triggers,
       }),
+      migrate: (persisted, version) => {
+        // v1 → v2: TriggerRun gains outputStatus/outputError/outputSentAt; Trigger gains output
+        // No data transformation needed — new fields are optional
+        if (version < 2) {
+          return persisted;
+        }
+        return persisted;
+      },
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         // Reset UI state
@@ -284,7 +313,7 @@ export const useTriggerStore = create<TriggerStore>()(
         state.showEditor = false;
         state.editingTriggerId = null;
         state.editorTemplateDefaults = null;
-        // Reset any stuck running runs
+        // Reset any stuck running runs and pending output statuses
         const now = Date.now();
         for (const trigger of Object.values(state.triggers)) {
           for (const run of trigger.runs) {
@@ -292,6 +321,10 @@ export const useTriggerStore = create<TriggerStore>()(
               run.status = 'error';
               run.completedAt = now;
               run.error = 'App restarted during execution';
+            }
+            if (run.outputStatus === 'pending') {
+              run.outputStatus = 'failed';
+              run.outputError = 'App restarted during push';
             }
           }
         }

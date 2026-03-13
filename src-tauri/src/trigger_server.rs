@@ -4,8 +4,9 @@
 //! to fire triggers. Events are forwarded to the frontend via Tauri events.
 //!
 //! Endpoints:
-//! - `GET  /health`        — health check
-//! - `POST /trigger/{id}`  — fire a trigger
+//! - `GET  /health`              — health check
+//! - `POST /trigger/{id}`        — fire a trigger
+//! - `POST /im/{platform}/webhook` — IM platform inbound webhook (Phase 1B)
 
 use std::io::{BufRead, BufReader, Read as IoRead, Write};
 use std::net::TcpListener;
@@ -105,18 +106,7 @@ fn handle_connection(
                 return send_json(&mut client, 400, r#"{"success":false,"message":"Invalid trigger ID"}"#);
             }
 
-            // Read body
-            let body = if content_length > 0 {
-                // Cap at 1MB to prevent abuse
-                let len = content_length.min(1_048_576);
-                let mut buf = vec![0u8; len];
-                reader.read_exact(&mut buf)?;
-                String::from_utf8_lossy(&buf).to_string()
-            } else {
-                "{}".to_string()
-            };
-
-            // Validate JSON
+            let body = read_body(&mut reader, content_length);
             let payload: serde_json::Value = match serde_json::from_str(&body) {
                 Ok(v) => v,
                 Err(_) => {
@@ -124,7 +114,6 @@ fn handle_connection(
                 }
             };
 
-            // Emit Tauri event to frontend
             let event_data = serde_json::json!({
                 "triggerId": trigger_id,
                 "payload": payload
@@ -147,9 +136,83 @@ fn handle_connection(
                 }
             }
         }
+        // Phase 1B: IM platform inbound webhooks
+        // Route: POST /im/{platform}/webhook
+        // Supported platforms: dchat, feishu, dingtalk, wecom, slack
+        ("POST", p) if p.starts_with("/im/") && p.ends_with("/webhook") => {
+            let inner = &p[4..p.len()-8]; // strip "/im/" and "/webhook"
+            let platform = inner.trim_matches('/');
+
+            if !matches!(platform, "dchat" | "feishu" | "dingtalk" | "wecom" | "slack") {
+                return send_json(&mut client, 400, r#"{"success":false,"message":"Unknown IM platform"}"#);
+            }
+
+            let body = read_body(&mut reader, content_length);
+
+            // Feishu URL verification challenge
+            if platform == "feishu" {
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&body) {
+                    if let Some(challenge) = v.get("challenge").and_then(|c| c.as_str()) {
+                        let resp = format!(r#"{{"challenge":"{}"}}"#, challenge);
+                        return send_json(&mut client, 200, &resp);
+                    }
+                }
+            }
+
+            // DingTalk returns empty 200 for verification
+            // Slack URL verification challenge
+            if platform == "slack" {
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&body) {
+                    if v.get("type").and_then(|t| t.as_str()) == Some("url_verification") {
+                        if let Some(challenge) = v.get("challenge").and_then(|c| c.as_str()) {
+                            let resp = format!(r#"{{"challenge":"{}"}}"#, challenge);
+                            return send_json(&mut client, 200, &resp);
+                        }
+                    }
+                }
+            }
+
+            let payload: serde_json::Value = match serde_json::from_str(&body) {
+                Ok(v) => v,
+                Err(_) => {
+                    return send_json(&mut client, 400, r#"{"success":false,"message":"Invalid JSON body"}"#);
+                }
+            };
+
+            let event_data = serde_json::json!({
+                "platform": platform,
+                "payload": payload
+            });
+
+            match app.emit("im-inbound-event", event_data) {
+                Ok(_) => send_json(&mut client, 200, r#"{"success":true}"#),
+                Err(e) => {
+                    let msg = format!(
+                        r#"{{"success":false,"message":"Event emit failed: {}"}}"#,
+                        e
+                    );
+                    send_json(&mut client, 500, &msg)
+                }
+            }
+        }
         _ => {
             send_json(&mut client, 404, r#"{"success":false,"message":"Not found"}"#)
         }
+    }
+}
+
+/// Read HTTP body from a buffered reader, capped at 1MB.
+fn read_body(reader: &mut BufReader<std::net::TcpStream>, content_length: usize) -> String {
+    if content_length > 0 {
+        let len = content_length.min(1_048_576);
+        let mut buf = vec![0u8; len];
+        if reader.read_exact(&mut buf).is_ok() {
+            String::from_utf8_lossy(&buf).to_string()
+        } else {
+            "{}".to_string()
+        }
+    } else {
+        "{}".to_string()
     }
 }
 

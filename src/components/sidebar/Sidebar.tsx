@@ -3,8 +3,9 @@ import { useChatStore } from '@/stores/chatStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useScheduleStore } from '@/stores/scheduleStore';
 import { useTriggerStore } from '@/stores/triggerStore';
+import { useIMChannelStore } from '@/stores/imChannelStore';
 import { useI18n } from '@/i18n';
-import { Plus, Clock, Zap, Wrench, Trash2, Settings, Download, Upload, Pencil, Undo2, HelpCircle } from 'lucide-react';
+import { Plus, Clock, Zap, Wrench, Trash2, Settings, Download, Upload, Pencil, Undo2, HelpCircle, Radio } from 'lucide-react';
 import GuideModal from '@/components/common/GuideModal';
 import ProfileEditModal from '@/components/common/ProfileEditModal';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,20 @@ function StatusIndicator({ status, onComplete }: StatusIndicatorProps) {
   return null;
 }
 
+function IMPlatformDot({ platform }: { platform: string }) {
+  const labels: Record<string, string> = {
+    dchat: 'DC', feishu: '飞', dingtalk: '钉', wecom: '微', slack: 'SL',
+  };
+  return (
+    <span
+      className="shrink-0 h-4 w-4 rounded text-[8px] font-bold leading-4 text-center bg-[#d97757]/15 text-[#d97757]"
+      title={platform}
+    >
+      {labels[platform] ?? platform.slice(0, 2).toUpperCase()}
+    </span>
+  );
+}
+
 export default function Sidebar() {
   const { conversations, activeConversationId, startNewConversation, switchConversation, deleteConversation, renameConversation, clearCompletedStatus, exportConversation, importConversation } = useChatStore();
   const openToolbox = useSettingsStore((s) => s.openToolbox);
@@ -53,6 +68,9 @@ export default function Sidebar() {
   const activeTaskCount = useScheduleStore((s) => s.getActiveTaskCount());
   const activeTriggerCount = useTriggerStore((s) =>
     Object.values(s.triggers).filter((t) => t.status === 'active').length
+  );
+  const enabledIMChannelCount = useIMChannelStore((s) =>
+    Object.values(s.channels).filter((c) => c.enabled).length
   );
   const { t } = useI18n();
 
@@ -288,6 +306,9 @@ export default function Sidebar() {
                   status={conv.status ?? 'idle'}
                   onComplete={() => handleClearCompletedStatus(conv.id)}
                 />
+                {conv.imPlatform && (
+                  <IMPlatformDot platform={conv.imPlatform} />
+                )}
                 {editingId === conv.id ? (
                   <input
                     autoFocus
@@ -320,6 +341,22 @@ export default function Sidebar() {
           </div>
         )}
       </ScrollArea>
+
+      {/* IM Channel Status Bar */}
+      {enabledIMChannelCount > 0 && (
+        <button
+          onClick={() => openSystemSettings('im-channels')}
+          className="mx-4 mb-2 px-3 py-1.5 flex items-center gap-2 rounded-lg bg-[#d97757]/5 hover:bg-[#d97757]/10 transition-colors shrink-0"
+        >
+          <Radio className="h-3.5 w-3.5 text-[#d97757]" />
+          <span className="text-[11px] text-[#656358]">
+            {t.imChannel.title}
+          </span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#d97757]/15 text-[#d97757] font-medium">
+            {enabledIMChannelCount}
+          </span>
+        </button>
+      )}
 
       {/* User Section */}
       <div className="px-5 py-4 shrink-0">

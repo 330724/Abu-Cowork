@@ -84,6 +84,19 @@ export default function TriggerRunHistory({ runs }: Props) {
             {run.status === 'debounced' && t.trigger.runStatusDebounced}
           </span>
 
+          {/* Output push status */}
+          {run.outputStatus === 'sent' && (
+            <span className="text-[10px] text-green-500 shrink-0">{t.trigger.outputSent}</span>
+          )}
+          {run.outputStatus === 'failed' && (
+            <span
+              className="text-[10px] text-red-500 shrink-0 cursor-help"
+              title={run.outputError}
+            >
+              {t.trigger.outputFailed}
+            </span>
+          )}
+
           {/* View conversation button */}
           {run.conversationId && conversations[run.conversationId] ? (
             <button
