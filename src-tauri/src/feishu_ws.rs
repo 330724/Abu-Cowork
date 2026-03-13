@@ -10,7 +10,7 @@
 //! 4. Send ping frames at PingInterval to keep alive
 //! 5. Auto-reconnect on disconnect
 
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -130,8 +130,8 @@ struct WsState {
     stop_tx: watch::Sender<bool>,
     /// Current status
     status: Mutex<WsStatus>,
-    /// Dedup set for message_id
-    seen_messages: Mutex<HashSet<String>>,
+    /// Dedup map: message_id → seen_at_millis (TTL-based sliding window)
+    seen_messages: Mutex<HashMap<String, u64>>,
 }
 
 static WS_STATE: std::sync::OnceLock<Arc<WsState>> = std::sync::OnceLock::new();
@@ -148,7 +148,7 @@ fn get_or_init_state() -> Arc<WsState> {
                     error: None,
                     reconnect_attempts: 0,
                 }),
-                seen_messages: Mutex::new(HashSet::new()),
+                seen_messages: Mutex::new(HashMap::new()),
             })
         })
         .clone()
@@ -521,20 +521,6 @@ async fn handle_binary_frame(
             // (we don't dynamically update config in this impl)
         }
         "event" | "card" => {
-            // Dedup check
-            if let Some(message_id) = frame.get_header("message_id") {
-                let mut seen = state.seen_messages.lock().await;
-                if seen.contains(message_id) {
-                    return Ok(());
-                }
-                seen.insert(message_id.to_string());
-
-                // Limit dedup set size
-                if seen.len() > 10_000 {
-                    seen.clear();
-                }
-            }
-
             // Extract payload JSON
             if let Some(payload_bytes) = &frame.payload {
                 let payload_str = String::from_utf8_lossy(payload_bytes);
@@ -544,14 +530,30 @@ async fn handle_binary_frame(
                     &payload_str[..payload_str.len().min(200)]
                 );
 
-                // Parse as JSON and emit as im-inbound-event
+                // Parse as JSON
                 match serde_json::from_str::<serde_json::Value>(&payload_str) {
                     Ok(payload) => {
-                        let event_data = serde_json::json!({
-                            "platform": "feishu",
-                            "payload": payload
-                        });
-                        let _ = app.emit("im-inbound-event", event_data);
+                        // Only forward message events, skip message_read/recalled/etc.
+                        let event_type = payload
+                            .get("header")
+                            .and_then(|h| h.get("event_type"))
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("");
+
+                        if event_type != "im.message.receive_v1" {
+                            eprintln!("[FeishuWS] Skipping non-message event: {}", event_type);
+                        } else {
+                            // ── create_time filter: skip events older than 5 minutes ──
+                            let now_ms = now_millis();
+                            let is_stale = is_stale_event(&payload, now_ms);
+
+                            if is_stale {
+                                // Stale event — ACK will still be sent below, but don't emit
+                            } else {
+                                // ── Dedup by message_id with 30-min TTL sliding window ──
+                                dedup_and_emit(&payload, state, app, now_ms).await;
+                            }
+                        }
                     }
                     Err(e) => {
                         eprintln!("[FeishuWS] Payload parse error: {}", e);
@@ -573,6 +575,88 @@ async fn handle_binary_frame(
     }
 
     Ok(())
+}
+
+// ── Dedup & staleness helpers ──
+
+/// 30-minute TTL for dedup entries (aligned with OpenClaw / industry practice)
+const DEDUP_TTL_MS: u64 = 30 * 60 * 1000;
+/// Events older than 5 minutes are considered stale (reconnect replay)
+const STALE_EVENT_MS: u64 = 5 * 60 * 1000;
+
+fn now_millis() -> u64 {
+    use std::time::SystemTime;
+    SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
+}
+
+/// Check if a Feishu event's create_time is older than STALE_EVENT_MS.
+fn is_stale_event(payload: &serde_json::Value, now_ms: u64) -> bool {
+    let create_time_str = payload
+        .get("header")
+        .and_then(|h| h.get("create_time"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+
+    if create_time_str.is_empty() {
+        return false;
+    }
+
+    if let Ok(create_ms) = create_time_str.parse::<u64>() {
+        if now_ms > create_ms && now_ms - create_ms > STALE_EVENT_MS {
+            eprintln!(
+                "[FeishuWS] Stale event skipped (age={}s, create_time={})",
+                (now_ms - create_ms) / 1000,
+                create_time_str,
+            );
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Dedup by business message_id with TTL sliding window, then emit if fresh.
+async fn dedup_and_emit(
+    payload: &serde_json::Value,
+    state: &Arc<WsState>,
+    app: &AppHandle,
+    now_ms: u64,
+) {
+    let biz_msg_id = payload
+        .get("event")
+        .and_then(|e| e.get("message"))
+        .and_then(|m| m.get("message_id"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+
+    if !biz_msg_id.is_empty() {
+        let mut seen = state.seen_messages.lock().await;
+
+        // Check if already processed within TTL window
+        if let Some(&seen_at) = seen.get(biz_msg_id) {
+            if now_ms - seen_at < DEDUP_TTL_MS {
+                eprintln!("[FeishuWS] Duplicate biz message skipped: {}", biz_msg_id);
+                return;
+            }
+        }
+
+        // Record this message
+        seen.insert(biz_msg_id.to_string(), now_ms);
+
+        // Lazy GC: remove entries older than TTL
+        if seen.len() > 100 {
+            seen.retain(|_, &mut t| now_ms - t < DEDUP_TTL_MS);
+        }
+    }
+
+    let event_data = serde_json::json!({
+        "platform": "feishu",
+        "payload": payload
+    });
+    let _ = app.emit("im-inbound-event", event_data);
 }
 
 // ── Utility functions ──
@@ -628,8 +712,8 @@ pub async fn start_feishu_ws(
     // Reset stop signal
     let _ = state.stop_tx.send(false);
 
-    // Clear dedup set
-    state.seen_messages.lock().await.clear();
+    // NOTE: Do NOT clear seen_messages here — preserving them across
+    // reconnects prevents old-message replay (industry best practice).
 
     let state_clone = state.clone();
     tokio::spawn(async move {

@@ -18,6 +18,7 @@ import { sessionMapper } from './sessionMapper';
 import { sendThinking, sendFinal, addProcessingReaction } from './streamingReply';
 import type { AbuMessage } from './adapters/types';
 import type { IMChannel, IMCapabilityLevel } from '../../types/imChannel';
+import { tokenManager } from './tokenManager';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 const MAX_CONCURRENT_IM = 5;
@@ -29,8 +30,8 @@ class IMChannelRouter {
   private queuedMessages: { message: NormalizedIMMessage; channelId: string }[] = [];
   private unlistenIM: UnlistenFn | null = null;
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
-  /** Track recently processed message IDs to prevent duplicate webhook deliveries */
-  private recentMessageIds = new Set<string>();
+  /** Track recently processed message IDs with timestamps for TTL-based dedup */
+  private recentMessageIds = new Map<string, number>();
 
   async start() {
     this.unlistenIM = await listen<{ platform: string; payload: Record<string, unknown> }>(
@@ -44,8 +45,12 @@ class IMChannelRouter {
     // Periodic session cleanup (every 5 minutes)
     this.cleanupInterval = setInterval(() => {
       sessionMapper.cleanup();
-      // Purge dedup set to prevent memory leak
-      this.recentMessageIds.clear();
+      // Purge only expired dedup entries (30-min TTL), not full clear
+      const now = Date.now();
+      const DEDUP_TTL_MS = 30 * 60 * 1000;
+      for (const [key, ts] of this.recentMessageIds) {
+        if (now - ts > DEDUP_TTL_MS) this.recentMessageIds.delete(key);
+      }
     }, 5 * 60 * 1000);
 
     console.log('[IMChannel] Router started');
@@ -68,13 +73,18 @@ class IMChannelRouter {
     const message = parseInboundMessage(platform, rawPayload);
     if (!message) return;
 
-    // Dedup: skip if we've already processed this exact message recently
-    const dedupKey = `${message.platform}:${message.chatId}:${message.senderId}:${message.text}`;
-    if (this.recentMessageIds.has(dedupKey)) {
+    // Dedup: prefer messageId (stable ID) over content-based key
+    const dedupKey = message.replyContext.messageId
+      ? `${message.platform}:${message.replyContext.messageId}`
+      : `${message.platform}:${message.chatId}:${message.senderId}:${message.text}`;
+    const now = Date.now();
+    const DEDUP_TTL_MS = 30 * 60 * 1000; // 30 minutes
+    const seenAt = this.recentMessageIds.get(dedupKey);
+    if (seenAt !== undefined && now - seenAt < DEDUP_TTL_MS) {
       console.log('[IMChannel] Duplicate message skipped');
       return;
     }
-    this.recentMessageIds.add(dedupKey);
+    this.recentMessageIds.set(dedupKey, now);
 
     // Find matching enabled channel for this platform
     const store = useIMChannelStore.getState();
@@ -82,6 +92,11 @@ class IMChannelRouter {
     if (channels.length === 0) return;
 
     const channel = channels[0];
+
+    // Response mode filter: in group chats, check if @mention is required
+    if (!message.isDirect && channel.responseMode !== 'all_messages' && !message.isMention) {
+      return; // Group message without @mention, skip silently
+    }
 
     // Auth check
     const authResult = resolveCapability(message.senderId, channel);
@@ -120,6 +135,12 @@ class IMChannelRouter {
       // 1. Session resolution
       const resolveResult = sessionMapper.resolve(message, channel, capability);
       const { session, isRecovered, hasRecoverableSession, recoverableContext } = resolveResult;
+
+      // 1b. Async user name resolution (non-blocking)
+      if (resolveResult.isNew && message.platform === 'feishu' && message.senderId) {
+        this.resolveFeishuUserName(message.senderId, channel, session.conversationId, session.key)
+          .catch(() => {});
+      }
 
       // 2. Send thinking acknowledgment (or recovery/hint messages)
       let replyHandle;
@@ -169,6 +190,12 @@ class IMChannelRouter {
         runAgentLoop(session.conversationId, message.text, {
           commandConfirmCallback: callbacks.commandConfirmCallback,
           filePermissionCallback: callbacks.filePermissionCallback,
+          blockedTools: ['request_workspace'],
+          imContext: {
+            platform: message.platform,
+            workspacePath: channel.workspacePaths[0] ?? null,
+            capability,
+          },
         }),
         AGENT_TIMEOUT_MS,
       );
@@ -247,6 +274,43 @@ class IMChannelRouter {
     if (!authResult.allowed) return;
 
     this.processMessage(next.message, channel, authResult.capability);
+  }
+
+  /**
+   * Resolve Feishu user's display name via API and update session/conversation title.
+   */
+  private async resolveFeishuUserName(
+    openId: string,
+    channel: IMChannel,
+    conversationId: string,
+    sessionKey: string,
+  ) {
+    try {
+      const token = await tokenManager.getToken('feishu', channel.appId, channel.appSecret);
+      const { FeishuAdapter } = await import('./adapters/feishu');
+      const adapter = new FeishuAdapter();
+      const name = await adapter.resolveUserName(token, openId);
+      if (!name) return;
+
+      // Update session userName
+      const store = useIMChannelStore.getState();
+      const session = store.sessions[sessionKey];
+      if (session) {
+        store.upsertSession(sessionKey, { ...session, userName: name });
+      }
+
+      // Update conversation title
+      const chatStore = useChatStore.getState();
+      const conv = chatStore.conversations[conversationId];
+      if (conv) {
+        const chatName = session?.chatName ? ` · ${session.chatName}` : '';
+        chatStore.renameConversation(conversationId, chatName ? `${name}${chatName}` : name);
+      }
+
+      console.log(`[IMChannel] Resolved Feishu user name: ${openId} → ${name}`);
+    } catch (err) {
+      console.warn(`[IMChannel] Failed to resolve user name for ${openId}:`, err);
+    }
   }
 
   private extractLastAIReply(conversationId: string): string | null {

@@ -231,6 +231,15 @@ export const useChatStore = create<ChatStore>()(
         clearInputQueue(id);
         clearAllSkillHooks();
         useTaskExecutionStore.getState().clearConversation(id);
+        // Clean up IM session pointing to this conversation (lazy import to avoid circular deps)
+        import('./imChannelStore').then(({ useIMChannelStore }) => {
+          const imStore = useIMChannelStore.getState();
+          for (const [key, session] of Object.entries(imStore.sessions)) {
+            if (session.conversationId === id) {
+              imStore.removeSession(key);
+            }
+          }
+        }).catch(() => {});
         const wasActive = get().activeConversationId === id;
         set((state) => {
           delete state.conversations[id];
@@ -554,7 +563,7 @@ export const useChatStore = create<ChatStore>()(
       clearCompletedStatus: (convId) => {
         set((state) => {
           const conv = state.conversations[convId];
-          if (conv && conv.status === 'completed') {
+          if (conv && (conv.status === 'completed' || conv.status === 'error')) {
             conv.status = 'idle';
             conv.completedAt = undefined;
           }

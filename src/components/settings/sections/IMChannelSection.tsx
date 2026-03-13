@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useIMChannelStore } from '@/stores/imChannelStore';
 import { useI18n } from '@/i18n';
 import { triggerEngine } from '@/core/trigger/triggerEngine';
-import { Plus, Trash2, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Copy, Check, HelpCircle } from 'lucide-react';
 import { Toggle } from '@/components/ui/toggle';
 import { Select } from '@/components/ui/select';
 import type { IMPlatform } from '@/types/trigger';
-import type { IMCapabilityLevel } from '@/types/imChannel';
+import type { IMCapabilityLevel, IMResponseMode } from '@/types/imChannel';
 
 const PLATFORMS: { value: IMPlatform; label: string }[] = [
   { value: 'dchat', label: 'D-Chat' },
@@ -31,6 +31,111 @@ function useCapLabels() {
     safe_tools: t.imChannel.capabilitySafeTools,
     full: t.imChannel.capabilityFull,
   };
+}
+
+/** Consistent form row: label on left, control on right */
+function FormRow({ label, children, hint }: { label: string; children: React.ReactNode; hint?: React.ReactNode }) {
+  const [showHint, setShowHint] = useState(false);
+  const hintRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showHint) return;
+    const handleClick = (e: MouseEvent) => {
+      if (hintRef.current && !hintRef.current.contains(e.target as Node)) {
+        setShowHint(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showHint]);
+
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="shrink-0 pt-1.5">
+        <span className="inline-flex items-center gap-1 text-[13px] text-[#656358]">
+          {label}
+          {hint && (
+            <div className="relative" ref={hintRef}>
+              <button
+                onClick={() => setShowHint(!showHint)}
+                className="text-[#aaa89e] hover:text-[#888579] transition-colors"
+              >
+                <HelpCircle className="h-3.5 w-3.5" />
+              </button>
+              {showHint && (
+                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-52 px-3 py-2 rounded-lg bg-[#29261b] text-white text-[11px] leading-relaxed shadow-lg z-[9999]">
+                  {hint}
+                  <div className="absolute right-full top-1/2 -translate-y-1/2 w-0 h-0 border-y-[5px] border-y-transparent border-r-[5px] border-r-[#29261b]" />
+                </div>
+              )}
+            </div>
+          )}
+        </span>
+      </div>
+      <div className="w-[340px] shrink-0">{children}</div>
+    </div>
+  );
+}
+
+/** Section group with optional title */
+function FormGroup({ title, children }: { title?: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-3">
+      {title && (
+        <div className="text-[11px] font-medium text-[#aaa89e] uppercase tracking-wider">{title}</div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+/** Consistent text input */
+function FormInput({
+  value,
+  onChange,
+  type = 'text',
+  placeholder,
+  mono,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+  placeholder?: string;
+  mono?: boolean;
+}) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className={`w-full px-3 py-1.5 text-[13px] rounded-lg border border-[#e8e4dd] bg-[#faf8f5] focus:border-[#d97757]/50 focus:outline-none transition-colors ${mono ? 'font-mono' : ''}`}
+    />
+  );
+}
+
+/** Consistent number input — full width to match other fields */
+function FormNumber({
+  value,
+  onChange,
+  min,
+  max,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  min: number;
+  max: number;
+}) {
+  return (
+    <input
+      type="number"
+      min={min}
+      max={max}
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value) || min)}
+      className="w-full px-3 py-1.5 text-[13px] rounded-lg border border-[#e8e4dd] bg-[#faf8f5] focus:border-[#d97757]/50 focus:outline-none transition-colors"
+    />
+  );
 }
 
 export default function IMChannelSection() {
@@ -124,9 +229,8 @@ export default function IMChannelSection() {
               </div>
               <Toggle
                 checked={channel.enabled}
-                onChange={(v) => {
-                  // Stop event from toggling expand
-                  updateChannel(channel.id, { enabled: v });
+                onChange={() => {
+                  updateChannel(channel.id, { enabled: !channel.enabled });
                 }}
                 size="sm"
               />
@@ -137,60 +241,86 @@ export default function IMChannelSection() {
               )}
             </div>
 
-            {/* Expanded detail */}
+            {/* Expanded detail — grouped layout */}
             {isExpanded && (
-              <div className="border-t border-[#e8e4dd] px-4 py-4 space-y-4">
-                {/* Webhook URL */}
-                <WebhookUrlField url={webhookUrl} hint={t.imChannel.webhookUrlHint} label={t.imChannel.webhookUrl} />
+              <div className="border-t border-[#e8e4dd] px-5 py-5 space-y-5">
+                {/* Group 1: Connection */}
+                <FormGroup title="连接配置">
+                  <FormRow label={t.imChannel.channelName}>
+                    <FormInput
+                      value={channel.name}
+                      onChange={(v) => updateChannel(channel.id, { name: v })}
+                    />
+                  </FormRow>
+                  <FormRow label="App ID">
+                    <FormInput
+                      value={channel.appId}
+                      onChange={(v) => updateChannel(channel.id, { appId: v })}
+                      mono
+                    />
+                  </FormRow>
+                  <FormRow label="App Secret">
+                    <FormInput
+                      type="password"
+                      value={channel.appSecret}
+                      onChange={(v) => updateChannel(channel.id, { appSecret: v })}
+                      mono
+                    />
+                  </FormRow>
+                  <WebhookUrlField url={webhookUrl} hint={t.imChannel.webhookUrlHint} label={t.imChannel.webhookUrl} />
+                </FormGroup>
 
-                {/* Capability */}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-[#29261b]">{t.imChannel.capability}</span>
-                  <Select
-                    variant="inline"
-                    value={channel.capability}
-                    options={CAPABILITY_OPTIONS.map(o => ({ value: o.value, label: capLabels[o.value] }))}
-                    onChange={(v) => updateChannel(channel.id, { capability: v as IMCapabilityLevel })}
-                  />
-                </div>
+                <div className="border-t border-[#f0ede8]" />
 
-                {/* Session timeout */}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-[#29261b]">{t.imChannel.sessionTimeout}</span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
+                {/* Group 2: Behavior */}
+                <FormGroup title="会话行为">
+                  <FormRow label={t.imChannel.responseMode} hint={<>{t.imChannel.responseMentionOnly}：{t.imChannel.responseMentionOnlyHint}<br/>{t.imChannel.responseAllMessages}：{t.imChannel.responseAllMessagesHint}</>}>
+                    <Select
+                      value={channel.responseMode ?? 'mention_only'}
+                      options={[
+                        { value: 'mention_only', label: t.imChannel.responseMentionOnly },
+                        { value: 'all_messages', label: t.imChannel.responseAllMessages },
+                      ]}
+                      onChange={(v) => updateChannel(channel.id, { responseMode: v as IMResponseMode })}
+                    />
+                  </FormRow>
+                  <FormRow label={t.imChannel.capability}>
+                    <Select
+                      value={channel.capability}
+                      options={CAPABILITY_OPTIONS.map(o => ({ value: o.value, label: capLabels[o.value] }))}
+                      onChange={(v) => updateChannel(channel.id, { capability: v as IMCapabilityLevel })}
+                    />
+                  </FormRow>
+                  <FormRow label={`${t.imChannel.sessionTimeout}（${t.imChannel.sessionTimeoutMinutes}）`}>
+                    <FormNumber
+                      value={channel.sessionTimeoutMinutes}
+                      onChange={(v) => updateChannel(channel.id, { sessionTimeoutMinutes: v })}
                       min={1}
                       max={1440}
-                      value={channel.sessionTimeoutMinutes}
-                      onChange={(e) => updateChannel(channel.id, { sessionTimeoutMinutes: Number(e.target.value) || 30 })}
-                      className="w-20 px-2 py-1 text-sm rounded-lg border border-[#e8e4dd] bg-[#faf8f5] text-right"
                     />
-                    <span className="text-xs text-[#888579]">{t.imChannel.sessionTimeoutMinutes}</span>
-                  </div>
-                </div>
+                  </FormRow>
+                  <FormRow label={t.imChannel.maxRounds}>
+                    <FormNumber
+                      value={channel.maxRoundsPerSession}
+                      onChange={(v) => updateChannel(channel.id, { maxRoundsPerSession: v })}
+                      min={1}
+                      max={500}
+                    />
+                  </FormRow>
+                </FormGroup>
 
-                {/* Max rounds */}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-[#29261b]">{t.imChannel.maxRounds}</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={500}
-                    value={channel.maxRoundsPerSession}
-                    onChange={(e) => updateChannel(channel.id, { maxRoundsPerSession: Number(e.target.value) || 50 })}
-                    className="w-20 px-2 py-1 text-sm rounded-lg border border-[#e8e4dd] bg-[#faf8f5] text-right"
+                <div className="border-t border-[#f0ede8]" />
+
+                {/* Group 3: Access */}
+                <FormGroup title="访问控制">
+                  <TagInput
+                    label={t.imChannel.allowedUsers}
+                    hint={t.imChannel.allowedUsersHint}
+                    placeholder={t.imChannel.allowedUsersPlaceholder}
+                    values={channel.allowedUsers}
+                    onChange={(users) => updateChannel(channel.id, { allowedUsers: users })}
                   />
-                </div>
-
-                {/* Allowed users */}
-                <TagInput
-                  label={t.imChannel.allowedUsers}
-                  hint={t.imChannel.allowedUsersHint}
-                  placeholder={t.imChannel.allowedUsersPlaceholder}
-                  values={channel.allowedUsers}
-                  onChange={(users) => updateChannel(channel.id, { allowedUsers: users })}
-                />
+                </FormGroup>
 
                 {/* Error display */}
                 {channel.lastError && (
@@ -200,10 +330,10 @@ export default function IMChannelSection() {
                 )}
 
                 {/* Delete button */}
-                <div className="pt-2 border-t border-[#e8e4dd]">
+                <div className="pt-1 border-t border-[#f0ede8]">
                   <button
                     onClick={() => handleDelete(channel.id)}
-                    className="flex items-center gap-2 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors"
+                    className="flex items-center gap-2 text-xs text-red-400 hover:text-red-500 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                     {t.common.delete}
@@ -217,63 +347,56 @@ export default function IMChannelSection() {
 
       {/* Add Channel Form */}
       {showAddForm && (
-        <div className="rounded-xl border border-[#d97757]/30 bg-white p-4 space-y-4">
+        <div className="rounded-xl border border-[#d97757]/30 bg-white p-5 space-y-5">
           <h4 className="text-sm font-medium text-[#29261b]">{t.imChannel.addChannel}</h4>
 
           {/* Name */}
-          <input
-            type="text"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder={t.imChannel.channelNamePlaceholder}
-            className="w-full px-3 py-2 text-sm rounded-lg border border-[#e8e4dd] bg-[#faf8f5] placeholder:text-[#aaa89e]"
-          />
+          <FormRow label={t.imChannel.channelName}>
+            <FormInput
+              value={newName}
+              onChange={setNewName}
+              placeholder={t.imChannel.channelNamePlaceholder}
+            />
+          </FormRow>
 
           {/* Platform */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {PLATFORMS.map((p) => (
-              <button
-                key={p.value}
-                onClick={() => setNewPlatform(p.value)}
-                className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
-                  newPlatform === p.value
-                    ? 'border-[#d97757] bg-[#d97757]/10 text-[#d97757] font-medium'
-                    : 'border-[#e8e4dd] text-[#656358] hover:border-[#d97757]/50'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+          <FormRow label={t.imChannel.platform}>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {PLATFORMS.map((p) => (
+                <button
+                  key={p.value}
+                  onClick={() => setNewPlatform(p.value)}
+                  className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+                    newPlatform === p.value
+                      ? 'border-[#d97757] bg-[#d97757]/10 text-[#d97757] font-medium'
+                      : 'border-[#e8e4dd] text-[#656358] hover:border-[#d97757]/50'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </FormRow>
 
           {/* App ID & Secret */}
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              type="text"
-              value={newAppId}
-              onChange={(e) => setNewAppId(e.target.value)}
-              placeholder={t.imChannel.appIdPlaceholder}
-              className="px-3 py-2 text-sm rounded-lg border border-[#e8e4dd] bg-[#faf8f5] placeholder:text-[#aaa89e]"
-            />
-            <input
-              type="password"
-              value={newAppSecret}
-              onChange={(e) => setNewAppSecret(e.target.value)}
-              placeholder={t.imChannel.appSecretPlaceholder}
-              className="px-3 py-2 text-sm rounded-lg border border-[#e8e4dd] bg-[#faf8f5] placeholder:text-[#aaa89e]"
-            />
-          </div>
+          <FormRow label="App ID">
+            <FormInput value={newAppId} onChange={setNewAppId} placeholder={t.imChannel.appIdPlaceholder} mono />
+          </FormRow>
+          <FormRow label="App Secret">
+            <FormInput type="password" value={newAppSecret} onChange={setNewAppSecret} placeholder={t.imChannel.appSecretPlaceholder} mono />
+          </FormRow>
 
           {/* Capability */}
-          <Select
-            variant="inline"
-            value={newCapability}
-            options={CAPABILITY_OPTIONS.map(o => ({ value: o.value, label: capLabels[o.value] }))}
-            onChange={(v) => setNewCapability(v as IMCapabilityLevel)}
-          />
+          <FormRow label={t.imChannel.capability}>
+            <Select
+              value={newCapability}
+              options={CAPABILITY_OPTIONS.map(o => ({ value: o.value, label: capLabels[o.value] }))}
+              onChange={(v) => setNewCapability(v as IMCapabilityLevel)}
+            />
+          </FormRow>
 
           {/* Actions */}
-          <div className="flex items-center gap-2 justify-end">
+          <div className="flex items-center gap-2 justify-end pt-2">
             <button
               onClick={() => setShowAddForm(false)}
               className="px-4 py-2 text-sm text-[#656358] hover:text-[#29261b] rounded-lg transition-colors"
@@ -335,22 +458,20 @@ function WebhookUrlField({ url, hint, label }: { url: string; hint: string; labe
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <div>
-      <span className="text-sm text-[#29261b]">{label}</span>
-      <div className="mt-1 flex items-center gap-2">
-        <code className="flex-1 px-3 py-1.5 text-xs bg-[#f5f3ef] border border-[#e8e4dd] rounded-lg text-[#656358] truncate select-all">
+    <FormRow label={label} hint={hint}>
+      <div className="relative">
+        <code className="block w-full px-3 py-1.5 pr-9 text-[12px] bg-[#f5f3ef] border border-[#e8e4dd] rounded-lg text-[#656358] truncate select-all font-mono">
           {url}
         </code>
         <button
           onClick={handleCopy}
-          className="p-1.5 rounded-lg hover:bg-[#f5f3ef] transition-colors"
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-[#e8e4dd]/60 transition-colors"
           title="Copy"
         >
           {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5 text-[#888579]" />}
         </button>
       </div>
-      <p className="text-xs text-[#aaa89e] mt-1">{hint}</p>
-    </div>
+    </FormRow>
   );
 }
 
@@ -380,9 +501,8 @@ function TagInput({
   const removeTag = (tag: string) => onChange(values.filter(v => v !== tag));
 
   return (
-    <div>
-      <span className="text-sm text-[#29261b]">{label}</span>
-      <div className="mt-1 flex flex-wrap items-center gap-1.5 min-h-[36px] px-3 py-1.5 rounded-lg border border-[#e8e4dd] bg-[#faf8f5]">
+    <FormRow label={label} hint={hint}>
+      <div className="flex flex-wrap items-center gap-1.5 min-h-[34px] px-3 py-1.5 rounded-lg border border-[#e8e4dd] bg-[#faf8f5]">
         {values.map((v) => (
           <span
             key={v}
@@ -398,10 +518,9 @@ function TagInput({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={values.length === 0 ? placeholder : ''}
-          className="flex-1 min-w-[100px] text-xs bg-transparent outline-none placeholder:text-[#aaa89e]"
+          className="flex-1 min-w-[80px] text-xs bg-transparent outline-none placeholder:text-[#aaa89e]"
         />
       </div>
-      <p className="text-xs text-[#aaa89e] mt-1">{hint}</p>
-    </div>
+    </FormRow>
   );
 }

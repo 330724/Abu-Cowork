@@ -869,6 +869,11 @@ export interface TranslationDict {
     capabilityReadTools: string;
     capabilitySafeTools: string;
     capabilityFull: string;
+    responseMode: string;
+    responseMentionOnly: string;
+    responseMentionOnlyHint: string;
+    responseAllMessages: string;
+    responseAllMessagesHint: string;
     allowedUsers: string;
     allowedUsersPlaceholder: string;
     allowedUsersHint: string;

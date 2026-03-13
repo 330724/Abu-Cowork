@@ -37,7 +37,7 @@ interface IMChannelActions {
     workspacePaths?: string[];
     sessionTimeoutMinutes?: number;
   }): string;
-  updateChannel(id: string, data: Partial<Pick<IMChannel, 'name' | 'capability' | 'allowedUsers' | 'workspacePaths' | 'sessionTimeoutMinutes' | 'maxRoundsPerSession' | 'enabled'>>): void;
+  updateChannel(id: string, data: Partial<Pick<IMChannel, 'name' | 'appId' | 'appSecret' | 'capability' | 'responseMode' | 'allowedUsers' | 'workspacePaths' | 'sessionTimeoutMinutes' | 'maxRoundsPerSession' | 'enabled'>>): void;
   removeChannel(id: string): void;
   setChannelStatus(id: string, status: IMChannelStatus, error?: string): void;
 
@@ -75,6 +75,7 @@ export const useIMChannelStore = create<IMChannelStore>()(
             appId: data.appId,
             appSecret: data.appSecret,
             capability: data.capability ?? 'safe_tools',
+            responseMode: 'mention_only',
             allowedUsers: data.allowedUsers ?? [],
             workspacePaths: data.workspacePaths ?? [],
             sessionTimeoutMinutes: data.sessionTimeoutMinutes ?? 30,
@@ -92,6 +93,8 @@ export const useIMChannelStore = create<IMChannelStore>()(
         set((state) => {
           const channel = state.channels[id];
           if (!channel) return;
+          // Guard: ensure enabled is always a boolean (never undefined)
+          if ('enabled' in data && typeof data.enabled !== 'boolean') return;
           Object.assign(channel, data);
           channel.updatedAt = Date.now();
         });
@@ -191,6 +194,8 @@ export const useIMChannelStore = create<IMChannelStore>()(
         for (const channel of Object.values(state.channels)) {
           channel.status = 'disconnected';
           channel.lastError = undefined;
+          // Fix: repair enabled field if corrupted to undefined (from prior Toggle bug)
+          if (channel.enabled === undefined) channel.enabled = false;
         }
         // Clear sessions (runtime only)
         state.sessions = {};

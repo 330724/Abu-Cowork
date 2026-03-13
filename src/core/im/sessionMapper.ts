@@ -3,7 +3,8 @@
  *
  * Session resolution rules:
  * 1. Has thread (Slack thread_ts, Feishu messageId reply) → key = "platform:chatId:threadId"
- * 2. No thread → key = "platform:chatId:window"
+ * 2. Group chat, no thread → key = "platform:chatId:senderId:window" (per-user isolation)
+ * 3. P2P/direct chat → key = "platform:chatId:window"
  * 3. Timeout (default 30 min no interaction) → create new session
  * 4. Exceeded maxRounds → create new session
  * 5. "继续上次" / "continue" → recover previous session
@@ -71,11 +72,13 @@ export class SessionMapper {
     const existing = store.sessions[sessionKey];
 
     if (existing) {
+      // Check if the underlying conversation still exists (user may have deleted it in Abu)
+      const convExists = !!useChatStore.getState().conversations[existing.conversationId];
       const timeoutMs = channel.sessionTimeoutMinutes * 60 * 1000;
       const isExpired = Date.now() - existing.lastActiveAt > timeoutMs;
       const isMaxRounds = existing.messageCount >= channel.maxRoundsPerSession;
 
-      if (!isExpired && !isMaxRounds) {
+      if (convExists && !isExpired && !isMaxRounds) {
         // Session still valid
         store.incrementSessionRound(sessionKey);
         return { session: { ...existing, messageCount: existing.messageCount + 1 }, isNew: false };
@@ -124,6 +127,11 @@ export class SessionMapper {
   }
 
   private buildWindowKey(message: NormalizedIMMessage): string {
+    // Group chats: isolate sessions per user to prevent context leakage
+    // P2P/direct chats: only one user, no need for senderId in key
+    if (!message.isDirect && message.senderId) {
+      return `${message.platform}:${message.chatId}:${message.senderId}:window`;
+    }
     return `${message.platform}:${message.chatId}:window`;
   }
 
@@ -141,11 +149,11 @@ export class SessionMapper {
       imPlatform: message.platform,
     });
 
-    // Set conversation title with IM context
-    const platformLabels: Record<IMPlatform, string> = {
-      dchat: 'D-Chat', feishu: '飞书', dingtalk: '钉钉', wecom: '企微', slack: 'Slack',
-    };
-    const title = `[${platformLabels[message.platform]}] ${message.senderName}${message.chatName ? ` · ${message.chatName}` : ''}`;
+    // Set conversation title — use readable name or first message text (no platform prefix)
+    const displayName = this.isReadableName(message.senderName)
+      ? message.senderName
+      : message.text.slice(0, 30).trim() || message.senderName;
+    const title = message.chatName ? `${displayName} · ${message.chatName}` : displayName;
     chatStore.renameConversation(conversationId, title);
 
     return {
@@ -191,6 +199,21 @@ export class SessionMapper {
     return parts.join(' → ') || '(无上下文)';
   }
 
+  /**
+   * Check if a name is human-readable (not a raw platform ID like ou_xxx, U12345, etc.)
+   */
+  private isReadableName(name: string): boolean {
+    if (!name) return false;
+    // Feishu open_id / union_id
+    if (/^ou_[a-f0-9]{16,}$/i.test(name)) return false;
+    if (/^on_[a-f0-9]{16,}$/i.test(name)) return false;
+    // Slack user ID
+    if (/^[UW][A-Z0-9]{8,}$/.test(name)) return false;
+    // Generic hex/UUID-like strings
+    if (/^[a-f0-9-]{16,}$/i.test(name)) return false;
+    return true;
+  }
+
   private isContinueRequest(text: string): boolean {
     const lower = text.toLowerCase().trim();
     return CONTINUE_PATTERNS.some((p) => lower === p || lower.startsWith(p));
@@ -208,9 +231,9 @@ export class SessionMapper {
       const timeoutMs = (channel?.sessionTimeoutMinutes ?? 30) * 60 * 1000;
 
       if (now - session.lastActiveAt > timeoutMs) {
-        // Archive for "continue last" recovery
-        const windowKey = `${session.platform}:${session.chatId}:window`;
-        this.previousSessions.set(windowKey, session);
+        // Archive for "continue last" recovery — use the session's own key
+        // which already includes senderId for group chats
+        this.previousSessions.set(session.key, session);
         store.removeSession(key);
       }
     }

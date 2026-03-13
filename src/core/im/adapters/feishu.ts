@@ -107,4 +107,42 @@ export class FeishuAdapter extends BaseAdapter {
 
     return { messageId: data.data?.message_id };
   }
+
+  /**
+   * Resolve a Feishu user's display name via Contact API.
+   * GET /open-apis/contact/v3/users/:user_id?user_id_type=open_id
+   * Caches results to avoid repeated API calls.
+   */
+  private nameCache = new Map<string, string>();
+
+  async resolveUserName(token: string, openId: string): Promise<string | null> {
+    const cached = this.nameCache.get(openId);
+    if (cached) return cached;
+
+    try {
+      const f = await getTauriFetch();
+      const resp = await f(
+        `https://open.feishu.cn/open-apis/contact/v3/users/${openId}?user_id_type=open_id`,
+        {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` },
+        },
+      );
+
+      if (!resp.ok) return null;
+
+      const data = await resp.json() as {
+        code?: number;
+        data?: { user?: { name?: string; en_name?: string } };
+      };
+
+      if (data.code !== 0) return null;
+
+      const name = data.data?.user?.name ?? data.data?.user?.en_name ?? null;
+      if (name) this.nameCache.set(openId, name);
+      return name;
+    } catch {
+      return null;
+    }
+  }
 }

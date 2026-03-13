@@ -11,6 +11,9 @@ import type { IMPlatform } from './trigger';
 
 export type IMCapabilityLevel = 'chat_only' | 'read_tools' | 'safe_tools' | 'full';
 
+/** Controls when Abu responds in group chats */
+export type IMResponseMode = 'mention_only' | 'all_messages';
+
 // ── Channel Config ──
 
 export type IMChannelStatus = 'connected' | 'connecting' | 'disconnected' | 'error';
@@ -26,6 +29,8 @@ export interface IMChannel {
   appSecret: string;
   /** Capability level for this channel */
   capability: IMCapabilityLevel;
+  /** When to respond in group chats (default: mention_only) */
+  responseMode: IMResponseMode;
   /** Allowed user IDs (empty = everyone) */
   allowedUsers: string[];
   /** Allowed workspace paths */

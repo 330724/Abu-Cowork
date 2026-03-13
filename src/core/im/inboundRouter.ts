@@ -96,6 +96,27 @@ function parseDChat(payload: Record<string, unknown>): NormalizedIMMessage | nul
 // ── Feishu ──
 
 function parseFeishu(payload: Record<string, unknown>): NormalizedIMMessage | null {
+  // Only handle new message events — ignore message_read, message_recalled, etc.
+  const header = payload.header as Record<string, unknown> | undefined;
+  const eventType = String(header?.event_type ?? '');
+  if (eventType && eventType !== 'im.message.receive_v1') {
+    console.log(`[InboundRouter] Feishu: ignoring event type "${eventType}"`);
+    return null;
+  }
+
+  // Stale event filter: skip events older than 5 minutes (reconnect replay defense)
+  const createTime = header?.create_time;
+  if (createTime) {
+    const createMs = Number(createTime);
+    if (!isNaN(createMs)) {
+      const ageMs = Date.now() - createMs;
+      if (ageMs > 5 * 60 * 1000) {
+        console.log(`[InboundRouter] Feishu: stale event skipped (age=${Math.round(ageMs / 1000)}s)`);
+        return null;
+      }
+    }
+  }
+
   // Feishu event callback format:
   // { event: { message: { chat_id, message_id, content, ... }, sender: { sender_id, ... } }, ... }
   const event = payload.event as Record<string, unknown> | undefined;
@@ -125,8 +146,11 @@ function parseFeishu(payload: Record<string, unknown>): NormalizedIMMessage | nu
   const chatType = String(message.chat_type ?? '');
 
   // Check for @mention (Feishu mentions have specific format)
-  const mentions = (event.message as Record<string, unknown>)?.mentions as { name?: string }[] | undefined;
-  const isMention = mentions?.some((m) => m.name?.toLowerCase()?.includes('abu')) ?? text.includes('@Abu');
+  // In Feishu group chats, the bot typically only receives messages where it's @mentioned.
+  // Check: mentions array has entries, or text contains mention tags, or common bot names.
+  const mentions = (event.message as Record<string, unknown>)?.mentions as { name?: string; id?: { open_id?: string } }[] | undefined;
+  const hasMentions = mentions != null && mentions.length > 0;
+  const isMention = hasMentions || /(@_user_\d+|@Abu|@abu|@阿布)/.test(text);
   const isDirect = chatType === 'p2p';
 
   // Clean mention tags from text
@@ -134,7 +158,7 @@ function parseFeishu(payload: Record<string, unknown>): NormalizedIMMessage | nu
 
   return {
     senderId: uid,
-    senderName: String(sender.sender_type === 'user' ? (sender as Record<string, unknown>).tenant_key ?? uid : uid),
+    senderName: String((sender as Record<string, unknown>).sender_name ?? uid),
     text: cleanText,
     isMention,
     isDirect,
