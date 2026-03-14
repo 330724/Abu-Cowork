@@ -852,6 +852,9 @@ const enUS: TranslationDict = {
     // Toast messages
     triggerCompleted: 'Trigger "{name}" completed',
     triggerError: 'Trigger "{name}" failed',
+    outputPushSent: '"{name}" result pushed',
+    outputPushFailed: '"{name}" push failed',
+    outputEnabled: 'Push enabled',
     // Source types
     sourceType: 'Trigger Source',
     sourceHttp: 'HTTP Webhook',
@@ -909,21 +912,25 @@ const enUS: TranslationDict = {
     outputSent: 'Pushed',
     outputFailed: 'Push failed',
     outputRetry: 'Retry',
-    // Phase 1B: IM source
+    // IM source
     imSource: 'IM Source',
-    imPlatform: 'IM Platform',
-    imAppId: 'App ID',
-    imAppIdPlaceholder: 'Bot App ID',
-    imAppSecret: 'App Secret',
-    imAppSecretPlaceholder: 'Bot App Secret',
+    imSelectChannel: 'Select IM Channel',
+    imNoChannels: 'Please add an IM channel in Settings → IM Channels first',
     imListenScope: 'Listen Scope',
     imScopeAll: 'All messages',
     imScopeMentionOnly: '@Abu mentions only',
     imScopeDirectOnly: 'Direct messages only',
+    imChatId: 'Chat ID (optional)',
+    imChatIdPlaceholder: 'Copy chat ID from IM platform, leave empty for all chats',
+    senderMatch: 'Sender match (optional)',
+    senderMatchPlaceholder: 'Bot name or ID',
     imWebhookUrl: 'Callback URL',
     imWebhookUrlHint: 'Configure this URL as the bot callback URL in the IM platform',
     outputTargetWebhook: 'Push to Webhook',
-    outputTargetReplySource: 'Reply to source IM',
+    outputTargetIMChannel: 'Push to IM Channel',
+    outputSelectChannel: 'Select push channel',
+    outputChatId: 'Target chat ID (optional)',
+    outputChatIdPlaceholder: 'Leave empty to reply to source chat',
   },
 
   imChannel: {

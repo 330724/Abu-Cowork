@@ -805,6 +805,9 @@ export interface TranslationDict {
     // Toast messages
     triggerCompleted: string;
     triggerError: string;
+    outputPushSent: string;
+    outputPushFailed: string;
+    outputEnabled: string;
     // Source types
     sourceType: string;
     sourceHttp: string;
@@ -862,21 +865,25 @@ export interface TranslationDict {
     outputSent: string;
     outputFailed: string;
     outputRetry: string;
-    // Phase 1B: IM source
+    // IM source
     imSource: string;
-    imPlatform: string;
-    imAppId: string;
-    imAppIdPlaceholder: string;
-    imAppSecret: string;
-    imAppSecretPlaceholder: string;
+    imSelectChannel: string;
+    imNoChannels: string;
     imListenScope: string;
     imScopeAll: string;
     imScopeMentionOnly: string;
     imScopeDirectOnly: string;
+    imChatId: string;
+    imChatIdPlaceholder: string;
+    senderMatch: string;
+    senderMatchPlaceholder: string;
     imWebhookUrl: string;
     imWebhookUrlHint: string;
     outputTargetWebhook: string;
-    outputTargetReplySource: string;
+    outputTargetIMChannel: string;
+    outputSelectChannel: string;
+    outputChatId: string;
+    outputChatIdPlaceholder: string;
   };
 
   // IM Channel Settings
