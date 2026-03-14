@@ -60,7 +60,7 @@ export default function IMInfoBar({ conversation }: IMInfoBarProps) {
   const session = Object.values(sessions).find((s) => s.conversationId === conversation.id);
 
   // Get channel info
-  const channel = channelId ? useIMChannelStore((s) => s.channels[channelId]) : null;
+  const channel = useIMChannelStore((s) => channelId ? s.channels[channelId] : null);
 
   const capabilityLabels: Record<IMCapabilityLevel, string> = {
     chat_only: t.imChannel.capabilityChatOnly,
