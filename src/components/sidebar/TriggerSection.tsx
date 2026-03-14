@@ -18,7 +18,27 @@ function formatRunDate(timestamp: number): string {
   return `${month}/${day} ${h}:${m}`;
 }
 
-function RunStatusDot({ status }: { status: TriggerRun['status'] }) {
+function RunStatusDot({ status, startedAt }: { status: TriggerRun['status']; startedAt: number }) {
+  const [hidden, setHidden] = useState(() => {
+    if (status === 'completed' && Date.now() - startedAt > 3000) return true;
+    if (status === 'error' && Date.now() - startedAt > 10000) return true;
+    return false;
+  });
+
+  useEffect(() => {
+    if (status === 'completed') {
+      const timer = setTimeout(() => setHidden(true), 3000);
+      return () => clearTimeout(timer);
+    }
+    if (status === 'error') {
+      const timer = setTimeout(() => setHidden(true), 10_000);
+      return () => clearTimeout(timer);
+    }
+    setHidden(false);
+  }, [status]);
+
+  if (hidden) return null;
+
   if (status === 'running') {
     return <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />;
   }
@@ -145,7 +165,7 @@ export default function TriggerSection() {
                 <div className="flex items-center gap-1 px-2">
                   <button
                     onClick={() => toggleTrigger(trigger.id)}
-                    className="shrink-0 p-0.5 text-[#656358] hover:text-[#29261b]"
+                    className="shrink-0 p-1 text-[#656358] hover:text-[#29261b]"
                   >
                     <ChevronRight
                       className={cn('h-3 w-3 transition-transform', isExpanded && 'rotate-90')}
@@ -185,7 +205,7 @@ export default function TriggerSection() {
                                 : 'text-[#b0ad9f] cursor-not-allowed'
                           )}
                         >
-                          <RunStatusDot status={run.status} />
+                          <RunStatusDot status={run.status} startedAt={run.startedAt} />
                           <span className="truncate">{label}</span>
                         </button>
                       );
