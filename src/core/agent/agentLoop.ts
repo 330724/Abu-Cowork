@@ -28,8 +28,13 @@ import { createSubagentController } from './subagentAbort';
 import { drainQueuedInputs, clearInputQueue } from './userInputQueue';
 import { snapshotExecutionSteps } from './executionSnapshot';
 import { emitHook } from './lifecycleHooks';
+import type { PreToolCallEvent } from './lifecycleHooks';
 import { invoke } from '@tauri-apps/api/core';
 import { setComputerUseBatchMode, setSkipAutoScreenshot, clearAllSkillHooks } from '../tools/builtins';
+import { formatTodosForPrompt } from './todoManager';
+import { isWindows } from '../../utils/platform';
+import { getBuiltinSearchConfig } from '../capabilities';
+import { resolveCapabilities } from '../llm/modelCapabilities';
 
 /** Persist execution steps onto the last assistant message for the given loop, then evict from memory */
 function persistExecutionSnapshot(conversationId: string, loopId: string): void {
@@ -41,12 +46,6 @@ function persistExecutionSnapshot(conversationId: string, loopId: string): void 
     store.evictExecution(exec.id);
   }
 }
-import type { PreToolCallEvent } from './lifecycleHooks';
-import { formatTodosForPrompt } from './todoManager';
-import { isWindows } from '../../utils/platform';
-import { getBuiltinSearchConfig } from '../capabilities';
-
-import { resolveCapabilities } from '../llm/modelCapabilities';
 
 // Module-level: current loop's context for delegate_to_agent tool
 let currentLoopContext: {
@@ -394,6 +393,22 @@ function getBaseSystemPrompt(): string {
   - 读取文件 → "看了一下，这个文件是..."
   - 出错了 → "没成功，[简短原因]，要再试试吗？"
 - **例外情况**（可以详细）：用户明确问"你怎么做的"、任务失败需解释、复杂任务需确认步骤
+
+## 可视化输出 — 生成式 UI（重要！）
+当用户需要图表、可视化、交互式演示、动画、UI 原型、数据展示、流程解释等视觉内容时，
+**必须直接在回复中输出 \`\`\`html 代码块**。前端会自动将其渲染为可交互的内联组件。
+
+**严禁**：
+- ❌ 不要调用 generate_image 工具 — html 代码块就能画图表和可视化
+- ❌ 不要调用 write_file 工具写 HTML 文件 — 这是对话内的临时可视化，不是文件
+- ❌ 不要调用 todo_write 工具 — 直接输出代码块
+- ❌ 不写 DOCTYPE/html/head/body 标签 — 只写 HTML 片段（style + HTML + script）
+
+**可以**：
+- ✅ 从 CDN 加载外部库（Chart.js、D3 等）：cdn.jsdelivr.net / cdnjs.cloudflare.com / unpkg.com
+- ✅ 只在用户明确要求"保存为文件"或"导出"时才调用 write_file
+
+**样式要求**：使用浅色/白色背景，禁止深色/黑色背景。与阿布界面风格保持一致。
 
 ## 工作方式 - 主动出击！
 你是一个**主动型助手**。当用户给你任务时：
@@ -832,8 +847,11 @@ export async function runAgentLoop(conversationId: string, userMessage: string, 
   while (continueLoop) {
     // Check if cancelled before starting new turn
     if (abortController.signal.aborted) {
-      chatStore.finishStreaming(conversationId);
+      chatStore.cancelStreaming(conversationId);
       chatStore.clearAbortController(conversationId);
+      taskExecutionStore.cancelExecution(execution.id);
+      deactivateAllSkills(conversationId);
+      chatStore.setConversationStatus(conversationId, 'idle');
       break;
     }
 
@@ -911,10 +929,10 @@ export async function runAgentLoop(conversationId: string, userMessage: string, 
       const modelCaps = resolveCapabilities(effectiveModelId);
 
       // Determine dynamic maxTokens — use model caps as default, user settings as override
-      const maxOutputTokens = settings.enableThinking && modelCaps.thinking
-        ? Math.max(settings.maxOutputTokens ?? modelCaps.maxOutputTokens, 16384)
-        : (settings.maxOutputTokens ?? modelCaps.maxOutputTokens);
-      const contextWindowSize = settings.contextWindowSize ?? modelCaps.contextWindow;
+      const maxOutputTokens = freshSettings.enableThinking && modelCaps.thinking
+        ? Math.max(freshSettings.maxOutputTokens ?? modelCaps.maxOutputTokens, 16384)
+        : (freshSettings.maxOutputTokens ?? modelCaps.maxOutputTokens);
+      const contextWindowSize = freshSettings.contextWindowSize ?? modelCaps.contextWindow;
 
       // Build effective system prompt: static base + dynamic per-turn sections
       const todoState = formatTodosForPrompt(conversationId);
@@ -928,8 +946,8 @@ export async function runAgentLoop(conversationId: string, userMessage: string, 
       // Step 1: Semantic compression — use cached summary or generate new one
       let messagesForContext = historyMessages;
       if (turnCount >= 3) {
-        const conv = useChatStore.getState().conversations[conversationId];
-        const cache = conv?.contextCache;
+        const convForCache = useChatStore.getState().conversations[conversationId];
+        const cache = convForCache?.contextCache;
 
         if (cache && cache.messageCountAtCompression <= historyMessages.length) {
           // Reuse cached compression: firstRound + summary + messages after summarized range
@@ -948,8 +966,8 @@ export async function runAgentLoop(conversationId: string, userMessage: string, 
               {
                 adapter,
                 model: effectiveModelId,
-                apiKey: settings.apiKey,
-                baseUrl: settings.baseUrl || undefined,
+                apiKey: freshSettings.apiKey,
+                baseUrl: freshSettings.baseUrl || undefined,
                 signal: abortController.signal,
               }
             );
@@ -994,7 +1012,7 @@ export async function runAgentLoop(conversationId: string, userMessage: string, 
         maxTokens: maxOutputTokens,
         signal: abortController.signal,
         temperature: freshSettings.temperature,
-        enableThinking: settings.enableThinking && modelCaps.thinking !== false,
+        enableThinking: freshSettings.enableThinking && modelCaps.thinking !== false,
         thinkingBudget: freshSettings.thinkingBudget,
         supportsVision: modelCaps.vision,
         builtinWebSearch,
@@ -1153,8 +1171,8 @@ export async function runAgentLoop(conversationId: string, userMessage: string, 
               {
                 adapter,
                 model: effectiveModelId,
-                apiKey: settings.apiKey,
-                baseUrl: settings.baseUrl || undefined,
+                apiKey: freshSettings.apiKey,
+                baseUrl: freshSettings.baseUrl || undefined,
                 signal: abortController.signal,
               }
             );
@@ -1258,7 +1276,36 @@ export async function runAgentLoop(conversationId: string, userMessage: string, 
 
           const startTime = Date.now();
           try {
-            const rawResult: ToolResult = await executeAnyTool(tc.name, effectiveInput, confirmCb, filePermCb, toolContext);
+            // Race tool execution against abort signal so stop button works during long-running tools (e.g. MCP)
+            const rawResult: ToolResult = await new Promise<ToolResult>((resolve, reject) => {
+              if (abortController.signal.aborted) {
+                reject(new DOMException('Aborted', 'AbortError'));
+                return;
+              }
+              let settled = false;
+              const onAbort = () => {
+                if (!settled) {
+                  settled = true;
+                  reject(new DOMException('Aborted', 'AbortError'));
+                }
+              };
+              abortController.signal.addEventListener('abort', onAbort, { once: true });
+              executeAnyTool(tc.name, effectiveInput, confirmCb, filePermCb, toolContext)
+                .then((result) => {
+                  if (!settled) {
+                    settled = true;
+                    abortController.signal.removeEventListener('abort', onAbort);
+                    resolve(result);
+                  }
+                })
+                .catch((err) => {
+                  if (!settled) {
+                    settled = true;
+                    abortController.signal.removeEventListener('abort', onAbort);
+                    reject(err);
+                  }
+                });
+            });
             const durationMs = Date.now() - startTime;
             completedCount++;
             if (totalCount > 1) {
@@ -1281,6 +1328,10 @@ export async function runAgentLoop(conversationId: string, userMessage: string, 
             });
             return { id: tc.id, result: resultStr, resultContent, error: false, duration: durationMs / 1000 };
           } catch (err) {
+            // Re-throw AbortError so outer catch handles cancellation properly
+            if (err instanceof Error && err.name === 'AbortError') {
+              throw err;
+            }
             const durationMs = Date.now() - startTime;
             completedCount++;
             if (totalCount > 1) {

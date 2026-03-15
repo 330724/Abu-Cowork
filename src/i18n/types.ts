@@ -108,6 +108,17 @@ export interface TranslationDict {
     infographicRenderError: string;
     infographicExpand: string;
     infographicCollapse: string;
+    htmlWidgetLabel: string;
+    htmlWidgetLoading: string;
+    htmlWidgetRenderError: string;
+    htmlWidgetExpand: string;
+    htmlWidgetCollapse: string;
+    htmlWidgetFullscreen: string;
+    htmlWidgetCopyCode: string;
+    htmlWidgetCopied: string;
+    htmlWidgetDownload: string;
+    htmlWidgetViewCode: string;
+    htmlWidgetViewPreview: string;
     setupRequired: string;
     setupRequiredDesc: string;
     setupButton: string;

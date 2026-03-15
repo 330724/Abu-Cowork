@@ -45,3 +45,8 @@ registerCodeBlockRenderer(
   'infographic',
   lazy(() => import('./InfographicBlock')),
 );
+
+registerCodeBlockRenderer(
+  'html',
+  lazy(() => import('./HtmlWidgetBlock')),
+);

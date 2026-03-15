@@ -534,11 +534,12 @@ ${projectMemory}
 
       // Show disabled skills so Agent can recommend enabling them when relevant
       if (disabled.length > 0) {
-        const disabledLines = disabled.map((s) => `- ${s.name}: ${s.description}`);
+        const disabledNames = disabled.map((s) => s.name).join('、');
         parts.push(
           '\n### 已禁用的技能\n' +
-          '以下技能已被用户禁用，无法直接使用。如果用户的任务恰好匹配，可以告知用户有对应的技能可以开启。\n\n' +
-          disabledLines.join('\n')
+          `以下技能已被用户禁用：${disabledNames}。\n` +
+          '**禁止对这些技能调用 use_skill**，调用会直接报错。' +
+          '如果用户的任务恰好匹配某个已禁用技能，用文字建议用户在设置中开启，不要尝试调用。'
         );
       }
     }

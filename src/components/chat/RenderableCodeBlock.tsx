@@ -14,12 +14,14 @@
  * a detached container first then transplant. Mermaid works fine (pure SVG).
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Copy, Check, ChevronDown, ChevronUp, Code, Image } from 'lucide-react';
+import { Copy, Check, ChevronDown, ChevronUp, Code, Eye, Maximize2, X, Ellipsis, Download } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { CollapsibleCodeBlock } from './MarkdownRenderer';
 
 type RenderState =
   | { status: 'loading' }
+  | { status: 'previewing' }
   | { status: 'success' }
   | { status: 'error'; message: string };
 
@@ -39,12 +41,33 @@ export interface CodeBlockRendererConfig {
   debounceMs?: number;
   /** Ms to wait after render failure before showing error (default 1000) */
   errorSettleMs?: number;
+  /** Seamless mode: no border/toolbar, widget blends into chat. Actions in hover menu.
+   *  Used by HtmlWidgetBlock for Claude-like inline experience. */
+  seamless?: boolean;
+  /** Optional fullscreen content builder. If provided, a maximize button appears in the toolbar.
+   *  Should return an HTML string to render in the fullscreen iframe. */
+  buildFullscreenHtml?: (code: string) => string;
+  /** Optional streaming preview. Called synchronously on every code change so the
+   *  user sees content build up instead of a loading overlay. The function should
+   *  be lightweight (e.g. postMessage, no heavy DOM work).
+   *  Renderers that don't provide this keep the existing loading behavior. */
+  preview?: {
+    /** Lightweight preview render (e.g. visual-only, no script execution). */
+    render: (code: string, container: HTMLDivElement) => void;
+  };
   /** i18n strings */
   i18n: {
     loading: string;
     renderError: string;
     expand: string;
     collapse: string;
+    // Seamless mode menu labels (optional, only needed when seamless=true)
+    fullscreen?: string;
+    copyCode?: string;
+    copied?: string;
+    download?: string;
+    viewCode?: string;
+    viewPreview?: string;
   };
 }
 
@@ -81,6 +104,8 @@ export default function RenderableCodeBlock({
   const [showSource, setShowSource] = useState(false);
   const [copied, setCopied] = useState(false);
   const [overflows, setOverflows] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const codeRef = useRef(code);
@@ -108,11 +133,27 @@ export default function RenderableCodeBlock({
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (settleRef.current) clearTimeout(settleRef.current);
 
+    // Immediate preview (if renderer supports it).
+    // Called synchronously on every code change — postMessage is cheap enough
+    // for 60fps updates. Using debounce here would starve the preview because
+    // streaming tokens reset the timer faster (~16ms) than it can fire (~120ms).
+    const previewConfig = configRef.current.preview;
+    if (previewConfig && containerRef.current) {
+      previewConfig.render(code, containerRef.current);
+      setState(prev => prev.status === 'previewing' ? prev : { status: 'previewing' });
+    }
+
+    // Full render path (existing logic)
     debounceRef.current = setTimeout(async () => {
       if (!containerRef.current || codeRef.current !== code) return;
 
       try {
-        containerRef.current.innerHTML = '';
+        // Only clear container if no preview is active — preview renderers
+        // (e.g. HtmlWidgetBlock) manage the container contents themselves
+        // and clearing would destroy their iframe/state.
+        if (!configRef.current.preview) {
+          containerRef.current.innerHTML = '';
+        }
         const html = await configRef.current.render(code, containerRef.current);
 
         if (codeRef.current !== code) return;
@@ -162,7 +203,7 @@ export default function RenderableCodeBlock({
 
   // Check overflow
   useEffect(() => {
-    if (state.status === 'success' && containerRef.current) {
+    if ((state.status === 'success' || state.status === 'previewing') && containerRef.current) {
       setOverflows(containerRef.current.scrollHeight > maxHeight);
     }
   }, [state, maxHeight]);
@@ -171,108 +212,243 @@ export default function RenderableCodeBlock({
     await navigator.clipboard.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    setMenuOpen(false);
+  }, [code]);
+
+  const handleDownload = useCallback(() => {
+    const blob = new Blob([code], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `widget-${Date.now().toString(36)}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setMenuOpen(false);
   }, [code]);
 
   if (!code.trim()) return null;
 
   const isLoading = state.status === 'loading';
+  const isPreviewing = state.status === 'previewing';
   const isError = state.status === 'error';
   const showFallback = isError || showSource;
   const isSuccess = state.status === 'success' && !showFallback;
-  const isCollapsed = isSuccess && overflows && !expanded;
+  const isVisible = isSuccess || isPreviewing;
+  const seamless = config.seamless ?? false;
+  // Seamless mode: no expand/collapse, show full height (like Claude)
+  const isCollapsed = !seamless && isVisible && overflows && !expanded;
+
+  // --- Shared pieces ---
+
+  const renderContainer = (
+    <div
+      ref={containerRef}
+      className={cn(
+        'flex justify-center overflow-x-auto [&>svg]:max-w-full',
+        seamless ? 'p-0' : 'p-4',
+        isCollapsed && 'overflow-hidden',
+        isLoading && 'min-h-[100px] invisible',
+      )}
+      style={isCollapsed ? { maxHeight: `${maxHeight}px` } : undefined}
+    />
+  );
+
+  // Shimmer overlay: only for bordered mode. Seamless mode relies on per-element
+  // placeholders (e.g. canvas → "图表加载中…") instead of a full-widget overlay.
+  const shimmerOverlay = isPreviewing && !seamless && (
+    <div className="absolute inset-0 z-[5] pointer-events-none">
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+        style={{ backgroundSize: '200% 100%', animation: 'shimmer 3s infinite linear' }} />
+      <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+    </div>
+  );
+
+  const expandButton = isCollapsed && (
+    <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent flex items-end justify-center pb-2">
+      <button
+        onClick={() => setExpanded(true)}
+        className="flex items-center gap-1 px-3 py-1 rounded-full bg-black/5 hover:bg-black/10 text-xs text-[#888579] transition-colors"
+      >
+        <ChevronDown className="h-3.5 w-3.5" />
+        {config.i18n.expand}
+      </button>
+    </div>
+  );
+
+  const collapseButton = overflows && expanded && (
+    <button
+      onClick={() => setExpanded(false)}
+      className="flex items-center gap-0.5 text-xs text-[#888579] hover:text-[#29261b] transition-colors"
+    >
+      <ChevronUp className="h-3.5 w-3.5" />
+      {config.i18n.collapse}
+    </button>
+  );
+
+  const loadingOverlay = isLoading && (
+    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-[#f5f3ee] text-sm text-[#888579]">
+      {config.i18n.loading}
+    </div>
+  );
+
+  const sourceFallback = showFallback && (
+    <div>
+      {isError && !showSource && (
+        <div className="rounded-t-lg bg-red-50 border border-red-200 border-b-0 px-3 py-2 text-xs text-red-600">
+          {config.i18n.renderError}
+        </div>
+      )}
+      <CollapsibleCodeBlock codeString={code} language={config.fallbackLanguage} />
+    </div>
+  );
+
+  const fullscreenOverlay = fullscreen && config.buildFullscreenHtml && createPortal(
+    <div
+      className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-6"
+      onClick={() => setFullscreen(false)}
+    >
+      <div
+        className="relative bg-white rounded-xl shadow-2xl w-full max-w-5xl"
+        style={{ height: '85vh' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <button
+          onClick={() => setFullscreen(false)}
+          className="absolute -top-3 -right-3 z-10 p-1.5 rounded-full bg-white shadow-md
+            hover:bg-[#f5f3ee] transition-colors"
+        >
+          <X className="h-4 w-4 text-[#888579]" />
+        </button>
+        <iframe
+          srcDoc={config.buildFullscreenHtml(code)}
+          sandbox="allow-scripts"
+          className="w-full h-full rounded-xl border-none"
+        />
+      </div>
+    </div>,
+    document.body,
+  );
+
+  // --- Seamless mode (Claude-like) ---
+
+  if (seamless) {
+    return (
+      <div className="my-3 group/widget relative">
+        {sourceFallback}
+        <div className={cn(showFallback && 'hidden')}>
+          <div className="relative">
+            {loadingOverlay}
+            {renderContainer}
+            {shimmerOverlay}
+            {expandButton}
+
+            {/* Hover menu — top-right ··· button */}
+            {!isLoading && (
+              <div className="absolute top-2 right-2 z-10 opacity-0 group-hover/widget:opacity-100 transition-opacity">
+                <div className="relative">
+                  <button
+                    onClick={() => setMenuOpen(!menuOpen)}
+                    className="p-1.5 rounded-lg bg-white/90 shadow-sm border border-[#e5e2db]
+                      hover:bg-[#f5f3ee] transition-colors"
+                  >
+                    <Ellipsis className="h-4 w-4 text-[#888579]" />
+                  </button>
+                  {menuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-20" onClick={() => setMenuOpen(false)} />
+                      <div className="absolute right-0 top-full mt-1 z-30 bg-white rounded-lg shadow-lg border border-[#e5e2db]
+                        py-1 min-w-[160px]">
+                        {config.buildFullscreenHtml && (
+                          <button
+                            onClick={() => { setFullscreen(true); setMenuOpen(false); }}
+                            className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-[#29261b]
+                              hover:bg-[#f5f3ee] transition-colors"
+                          >
+                            <Maximize2 className="h-4 w-4 text-[#888579]" />
+                            {config.i18n.fullscreen ?? 'Fullscreen'}
+                          </button>
+                        )}
+                        <button
+                          onClick={handleCopy}
+                          className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-[#29261b]
+                            hover:bg-[#f5f3ee] transition-colors"
+                        >
+                          {copied
+                            ? <Check className="h-4 w-4 text-green-600" />
+                            : <Copy className="h-4 w-4 text-[#888579]" />
+                          }
+                          {copied ? (config.i18n.copied ?? 'Copied') : (config.i18n.copyCode ?? 'Copy')}
+                        </button>
+                        <button
+                          onClick={handleDownload}
+                          className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-[#29261b]
+                            hover:bg-[#f5f3ee] transition-colors"
+                        >
+                          <Download className="h-4 w-4 text-[#888579]" />
+                          {config.i18n.download ?? 'Download'}
+                        </button>
+                        <button
+                          onClick={() => { setShowSource(!showSource); setMenuOpen(false); }}
+                          className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-[#29261b]
+                            hover:bg-[#f5f3ee] transition-colors"
+                        >
+                          {showSource
+                            ? <Eye className="h-4 w-4 text-[#888579]" />
+                            : <Code className="h-4 w-4 text-[#888579]" />
+                          }
+                          {showSource ? (config.i18n.viewPreview ?? 'Preview') : (config.i18n.viewCode ?? 'Code')}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          {/* Collapse button — shown inline below widget when expanded */}
+          {collapseButton && (
+            <div className="flex justify-center mt-1">{collapseButton}</div>
+          )}
+        </div>
+        {fullscreenOverlay}
+      </div>
+    );
+  }
+
+  // --- Bordered mode (Mermaid, Infographic) ---
 
   return (
     <div className="my-3">
-      {/* Error / source view overlay */}
-      {showFallback && (
-        <div>
-          {isError && !showSource && (
-            <div className="rounded-t-lg bg-red-50 border border-red-200 border-b-0 px-3 py-2 text-xs text-red-600">
-              {config.i18n.renderError}
-            </div>
-          )}
-          <CollapsibleCodeBlock codeString={code} language={config.fallbackLanguage} />
-          {showSource && state.status === 'success' && (
-            <div className="flex justify-end -mt-1">
-              <button
-                onClick={() => setShowSource(false)}
-                className="flex items-center gap-1 px-2 py-1 text-xs text-[#888579] hover:text-[#29261b] transition-colors"
-              >
-                <Image className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Render container — always mounted so ref is stable and lib can measure dimensions.
-          During loading: visible but overlaid with loading text.
-          During error/source: hidden (render already done/failed, no dimension needed). */}
+      {sourceFallback}
       <div className={cn('rounded-lg overflow-hidden border border-[#e5e2db]', showFallback && 'hidden')}>
         <div className="relative bg-white">
-          {/* Loading overlay — covers container while render is in progress */}
-          {isLoading && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-[#f5f3ee] text-sm text-[#888579]">
-              {config.i18n.loading}
-            </div>
-          )}
-          <div
-            ref={containerRef}
-            className={cn(
-              'flex justify-center p-4 overflow-x-auto [&>svg]:max-w-full',
-              isCollapsed && 'overflow-hidden',
-              isLoading && 'min-h-[100px] invisible'
-            )}
-            style={isCollapsed ? { maxHeight: `${maxHeight}px` } : undefined}
-          />
-          {isCollapsed && (
-            <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent flex items-end justify-center pb-2">
-              <button
-                onClick={() => setExpanded(true)}
-                className="flex items-center gap-1 px-3 py-1 rounded-full bg-black/5 hover:bg-black/10 text-xs text-[#888579] transition-colors"
-              >
-                <ChevronDown className="h-3.5 w-3.5" />
-                {config.i18n.expand}
-              </button>
-            </div>
-          )}
+          {loadingOverlay}
+          {renderContainer}
+          {shimmerOverlay}
+          {expandButton}
         </div>
         {/* Bottom toolbar */}
         <div className="flex items-center justify-between px-3 py-1.5 bg-[#f5f3ee] text-xs text-[#888579] border-t border-[#e5e2db]">
           <div className="flex items-center gap-2">
             <span>{config.label}</span>
-            {overflows && expanded && (
-              <button
-                onClick={() => setExpanded(false)}
-                className="flex items-center gap-0.5 hover:text-[#29261b] transition-colors"
-              >
-                <ChevronUp className="h-3.5 w-3.5" />
-                {config.i18n.collapse}
-              </button>
-            )}
+            {collapseButton}
           </div>
           <div className="flex items-center gap-1">
-            <button
-              onClick={handleCopy}
-              className="p-1 rounded hover:bg-black/5 transition-colors"
-              title={copied ? '✓' : 'Copy'}
-            >
-              {copied ? (
-                <Check className="h-3.5 w-3.5 text-green-600" />
-              ) : (
-                <Copy className="h-3.5 w-3.5" />
-              )}
+            {config.buildFullscreenHtml && (
+              <button onClick={() => setFullscreen(true)} className="p-1 rounded hover:bg-black/5 transition-colors">
+                <Maximize2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <button onClick={handleCopy} className="p-1 rounded hover:bg-black/5 transition-colors" title={copied ? '✓' : 'Copy'}>
+              {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
             </button>
-            <button
-              onClick={() => setShowSource(true)}
-              className="p-1 rounded hover:bg-black/5 transition-colors"
-              title="Source"
-            >
-              <Code className="h-3.5 w-3.5" />
+            <button onClick={() => setShowSource(!showSource)} className="p-1 rounded hover:bg-black/5 transition-colors">
+              {showSource ? <Eye className="h-3.5 w-3.5" /> : <Code className="h-3.5 w-3.5" />}
             </button>
           </div>
         </div>
       </div>
+      {fullscreenOverlay}
     </div>
   );
 }
