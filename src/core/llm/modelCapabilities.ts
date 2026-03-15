@@ -32,48 +32,48 @@ export interface ModelCapabilities {
 const KNOWN_MODELS: Record<string, ModelCapabilities> = {
   // Claude 4.x series
   'claude-opus-4-6':            { vision: true,  thinking: 'anthropic',        toolResultImages: 'native', documentBlock: true,  maxOutputTokens: 16384, contextWindow: 200000 },
-  'claude-sonnet-4-6':          { vision: true,  thinking: false,              toolResultImages: 'native', documentBlock: true,  maxOutputTokens: 8192,  contextWindow: 200000 },
+  'claude-sonnet-4-6':          { vision: true,  thinking: 'anthropic',        toolResultImages: 'native', documentBlock: true,  maxOutputTokens: 16384, contextWindow: 200000 },
   'claude-haiku-4-5-20251001':  { vision: true,  thinking: false,              toolResultImages: 'native', documentBlock: true,  maxOutputTokens: 8192,  contextWindow: 200000 },
   // Claude 3.x series
   'claude-3-5-sonnet-20241022': { vision: true,  thinking: false,              toolResultImages: 'native', documentBlock: true,  maxOutputTokens: 8192,  contextWindow: 200000 },
   'claude-3-5-haiku-20241022':  { vision: true,  thinking: false,              toolResultImages: 'native', documentBlock: true,  maxOutputTokens: 8192,  contextWindow: 200000 },
 
   // OpenAI GPT series
-  'gpt-4o':                     { vision: true,  thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 4096,  contextWindow: 128000 },
-  'gpt-4o-mini':                { vision: true,  thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 4096,  contextWindow: 128000 },
-  'gpt-4.1':                    { vision: true,  thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 16384, contextWindow: 1048576 },
-  'gpt-4.1-mini':               { vision: true,  thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 16384, contextWindow: 1048576 },
-  'gpt-4.1-nano':               { vision: true,  thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 16384, contextWindow: 1048576 },
-  'gpt-5.4':                    { vision: true,  thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 16384, contextWindow: 1048576 },
-  'o3':                         { vision: true,  thinking: 'openai-reasoning', toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 16384, contextWindow: 200000 },
-  'o3-mini':                    { vision: false, thinking: 'openai-reasoning', toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 16384, contextWindow: 200000 },
-  'o4-mini':                    { vision: true,  thinking: 'openai-reasoning', toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 16384, contextWindow: 200000 },
+  'gpt-4o':                     { vision: true,  thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 16384,  contextWindow: 128000 },
+  'gpt-4o-mini':                { vision: true,  thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 16384,  contextWindow: 128000 },
+  'gpt-4.1':                    { vision: true,  thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 32768,  contextWindow: 1048576 },
+  'gpt-4.1-mini':               { vision: true,  thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 32768,  contextWindow: 1048576 },
+  'gpt-4.1-nano':               { vision: true,  thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 32768,  contextWindow: 1048576 },
+  'gpt-5.4':                    { vision: true,  thinking: 'openai-reasoning', toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 128000, contextWindow: 1048576 },
+  'o3':                         { vision: true,  thinking: 'openai-reasoning', toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 100000, contextWindow: 200000 },
+  'o3-mini':                    { vision: false, thinking: 'openai-reasoning', toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 100000, contextWindow: 200000 },
+  'o4-mini':                    { vision: true,  thinking: 'openai-reasoning', toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 100000, contextWindow: 200000 },
 
   // DeepSeek series
-  'deepseek-chat':              { vision: false, thinking: false,              toolResultImages: 'none',       documentBlock: false, maxOutputTokens: 8192,  contextWindow: 64000 },
-  'deepseek-reasoner':          { vision: false, thinking: 'openai-reasoning', toolResultImages: 'none',       documentBlock: false, maxOutputTokens: 8192,  contextWindow: 64000 },
+  'deepseek-chat':              { vision: false, thinking: false,              toolResultImages: 'none',       documentBlock: false, maxOutputTokens: 8192,  contextWindow: 128000 },
+  'deepseek-reasoner':          { vision: false, thinking: 'openai-reasoning', toolResultImages: 'none',       documentBlock: false, maxOutputTokens: 8192,  contextWindow: 128000 },
 
   // Doubao (Volcengine)
-  'doubao-seed-2-0-pro-260215': { vision: true,  thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 8192,  contextWindow: 128000 },
+  'doubao-seed-2-0-pro-260215': { vision: true,  thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 32768, contextWindow: 256000 },
 
-  // Qwen (Bailian)
-  'qwen-max':                   { vision: true,  thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 8192,  contextWindow: 128000 },
-  'qwen-plus':                  { vision: true,  thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 8192,  contextWindow: 128000 },
+  // Qwen (Bailian) — text-only models, vision requires separate qwen-vl-* models
+  'qwen-max':                   { vision: false, thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 32768, contextWindow: 262144 },
+  'qwen-plus':                  { vision: false, thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 8192,  contextWindow: 131072 },
 
   // Moonshot
   'moonshot-v1-128k':           { vision: false, thinking: false,              toolResultImages: 'none',       documentBlock: false, maxOutputTokens: 4096,  contextWindow: 128000 },
 
   // Local models
   'llama3.2':                   { vision: true,  thinking: false,              toolResultImages: 'none',       documentBlock: false, maxOutputTokens: 4096,  contextWindow: 128000 },
-  'qwen2.5':                    { vision: false, thinking: false,              toolResultImages: 'none',       documentBlock: false, maxOutputTokens: 4096,  contextWindow: 32000 },
+  'qwen2.5':                    { vision: false, thinking: false,              toolResultImages: 'none',       documentBlock: false, maxOutputTokens: 8192,  contextWindow: 32768 },
 };
 
 // ── Pattern-based defaults ──────────────────────────────────────────
 
 const CLAUDE_DEFAULT: ModelCapabilities =       { vision: true,  thinking: false,              toolResultImages: 'native',     documentBlock: true,  maxOutputTokens: 8192,  contextWindow: 200000 };
 const GPT_MODERN_DEFAULT: ModelCapabilities =   { vision: true,  thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 16384, contextWindow: 128000 };
-const DEEPSEEK_DEFAULT: ModelCapabilities =     { vision: false, thinking: false,              toolResultImages: 'none',       documentBlock: false, maxOutputTokens: 8192,  contextWindow: 64000 };
-const QWEN_DEFAULT: ModelCapabilities =         { vision: true,  thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 8192,  contextWindow: 128000 };
+const DEEPSEEK_DEFAULT: ModelCapabilities =     { vision: false, thinking: false,              toolResultImages: 'none',       documentBlock: false, maxOutputTokens: 8192,  contextWindow: 128000 };
+const QWEN_DEFAULT: ModelCapabilities =         { vision: false, thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 8192,  contextWindow: 131072 };
 const FALLBACK_DEFAULT: ModelCapabilities =     { vision: true,  thinking: false,              toolResultImages: 'workaround', documentBlock: false, maxOutputTokens: 8192,  contextWindow: 128000 };
 
 /**
