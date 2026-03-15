@@ -166,6 +166,7 @@ export const PROVIDER_CONFIGS = {
       { id: 'google/gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro Preview' },
       { id: 'google/gemini-3.1-flash-lite-preview', label: 'Gemini 3.1 Flash Lite Preview' },
       { id: 'deepseek/deepseek-v3.2', label: 'DeepSeek V3.2' },
+      { id: 'deepseek/deepseek-r1', label: 'DeepSeek R1' },
       { id: 'mistralai/mistral-large-2512', label: 'Mistral Large' },
       { id: 'qwen/qwen3.5-plus-02-15', label: 'Qwen 3.5 Plus' },
       { id: 'moonshotai/kimi-k2.5', label: 'Kimi K2.5' },

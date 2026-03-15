@@ -5,7 +5,7 @@ import { ClaudeAdapter } from '../llm/claude';
 import { OpenAICompatibleAdapter } from '../llm/openai-compatible';
 import { getAllTools, executeAnyTool, toolResultToString, type ConfirmationInfo, type FilePermissionCallback } from '../tools/registry';
 import type { ToolResult, ToolResultContent, ToolDefinition } from '../../types';
-import { useChatStore } from '../../stores/chatStore';
+import { useChatStore, flushTokenBuffer } from '../../stores/chatStore';
 import { useSettingsStore, getEffectiveModel, resolveAgentModel } from '../../stores/settingsStore';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useTaskExecutionStore } from '../../stores/taskExecutionStore';
@@ -46,21 +46,7 @@ import { formatTodosForPrompt } from './todoManager';
 import { isWindows } from '../../utils/platform';
 import { getBuiltinSearchConfig } from '../capabilities';
 
-// Known non-vision model patterns (text-only models)
-const NON_VISION_MODEL_PATTERNS = [
-  /^gpt-3\.5/i,       // GPT-3.5 series (no vision)
-  /^gpt-4-(?!.*vision)/i, // gpt-4 base (not gpt-4-vision, not gpt-4o)
-  /text-davinci/i,    // legacy completion models
-];
-
-/** Check if a model supports vision (image inputs) based on model ID.
- *  Default: true for all models (most modern models support multimodal).
- *  Only explicitly known text-only models return false. */
-function modelSupportsVision(modelId: string, apiFormat: string): boolean {
-  if (apiFormat === 'anthropic') return true;
-  // Deny-list: only known text-only models return false
-  return !NON_VISION_MODEL_PATTERNS.some((p) => p.test(modelId));
-}
+import { resolveCapabilities } from '../llm/modelCapabilities';
 
 // Module-level: current loop's context for delegate_to_agent tool
 let currentLoopContext: {
@@ -921,9 +907,14 @@ export async function runAgentLoop(conversationId: string, userMessage: string, 
       // Exclude the last empty assistant message we just added
       const historyMessages = messages.slice(0, -1);
 
-      // Determine dynamic maxTokens
-      const maxOutputTokens = settings.enableThinking ? 16384 : (settings.maxOutputTokens ?? 8192);
-      const contextWindowSize = settings.contextWindowSize ?? 200000;
+      // Resolve model capabilities from registry
+      const modelCaps = resolveCapabilities(effectiveModelId);
+
+      // Determine dynamic maxTokens — use model caps as default, user settings as override
+      const maxOutputTokens = settings.enableThinking && modelCaps.thinking
+        ? Math.max(settings.maxOutputTokens ?? modelCaps.maxOutputTokens, 16384)
+        : (settings.maxOutputTokens ?? modelCaps.maxOutputTokens);
+      const contextWindowSize = settings.contextWindowSize ?? modelCaps.contextWindow;
 
       // Build effective system prompt: static base + dynamic per-turn sections
       const todoState = formatTodosForPrompt(conversationId);
@@ -1003,9 +994,9 @@ export async function runAgentLoop(conversationId: string, userMessage: string, 
         maxTokens: maxOutputTokens,
         signal: abortController.signal,
         temperature: freshSettings.temperature,
-        enableThinking: freshSettings.enableThinking,
+        enableThinking: settings.enableThinking && modelCaps.thinking !== false,
         thinkingBudget: freshSettings.thinkingBudget,
-        supportsVision: modelSupportsVision(effectiveModelId, freshSettings.apiFormat),
+        supportsVision: modelCaps.vision,
         builtinWebSearch,
       };
 
@@ -1028,6 +1019,8 @@ export async function runAgentLoop(conversationId: string, userMessage: string, 
               break;
 
             case 'tool_use': {
+              // Flush any buffered streaming tokens before processing tool calls
+              flushTokenBuffer(conversationId);
               // Record thinking end time when we transition from thinking to tool-calling
               if (!thinkingEndTime && collectedThinking) {
                 thinkingEndTime = Date.now();
