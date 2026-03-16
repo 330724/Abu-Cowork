@@ -278,6 +278,8 @@ const enUS: TranslationDict = {
     webSearchProviderBrave: 'Brave Search',
     webSearchProviderTavily: 'Tavily Search',
     webSearchProviderSearXNG: 'SearXNG (Self-hosted)',
+    webSearchProviderBaidu: 'Baidu Search',
+    webSearchSecretKey: 'Search Secret Key',
     // AI Services
     aiServices: 'AI Services',
     aiServicesDescription: 'Configure model, search, and image generation services',

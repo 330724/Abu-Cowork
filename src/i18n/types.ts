@@ -244,6 +244,8 @@ export interface TranslationDict {
     webSearchProviderBrave: string;
     webSearchProviderTavily: string;
     webSearchProviderSearXNG: string;
+    webSearchProviderBaidu: string;
+    webSearchSecretKey: string;
     // AI Services
     aiServices: string;
     aiServicesDescription: string;

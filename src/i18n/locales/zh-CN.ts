@@ -278,6 +278,8 @@ const zhCN: TranslationDict = {
     webSearchProviderBrave: 'Brave 搜索',
     webSearchProviderTavily: 'Tavily 搜索',
     webSearchProviderSearXNG: 'SearXNG（自建）',
+    webSearchProviderBaidu: '百度搜索',
+    webSearchSecretKey: '搜索 Secret Key',
     // AI Services
     aiServices: 'AI 服务',
     aiServicesDescription: '配置模型、搜索和图片生成服务',

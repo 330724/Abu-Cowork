@@ -232,14 +232,107 @@ export function createSearXNGProvider(baseUrl: string): SearchProvider {
   };
 }
 
+// --- Baidu Search API (Smart + Web) ---
+
+export type BaiduSearchMode = 'smart' | 'web';
+
+export function createBaiduProvider(apiKey: string, mode: BaiduSearchMode = 'smart'): SearchProvider {
+  return {
+    async search(query: string, options: SearchOptions): Promise<WebSearchResponse> {
+      const fetchFn = await getTauriFetch();
+
+      let url: string;
+      let requestBody: Record<string, unknown>;
+
+      if (mode === 'web') {
+        // Web search: 直接返回搜索结果
+        url = 'https://qianfan.baidubce.com/v2/ai_search/web_search';
+        requestBody = {
+          messages: [
+            {
+              role: 'user',
+              content: query,
+            },
+          ],
+          search_source: 'baidu_search_v2',
+          resource_type_filter: [
+            { type: 'web', top_k: Math.min(options.count, 20) },
+          ],
+        };
+      } else {
+        // Smart search: AI 总结 + 搜索结果
+        url = 'https://qianfan.baidubce.com/v2/ai_search/chat/completions';
+        requestBody = {
+          messages: [
+            {
+              role: 'user',
+              content: query,
+            },
+          ],
+          model: 'ernie-4.5-turbo-32k',
+          search_source: 'baidu_search_v2',
+          resource_type_filter: [
+            { type: 'web', top_k: Math.min(options.count, 10) },
+          ],
+          stream: false,
+          enable_reasoning: true,
+          enable_deep_search: false,
+          enable_corner_markers: true,
+        };
+      }
+
+      const response = await fetchFn(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Baidu Search API error: ${response.status} ${errorText}`);
+      }
+
+      const data = await response.json() as {
+        choices?: Array<{
+          message?: {
+            content?: string;
+          };
+        }>;
+        references?: Array<{
+          title?: string;
+          url?: string;
+          content?: string;
+          source?: string;
+        }>;
+      };
+
+      const references = data.references || [];
+
+      const results: SearchResult[] = references.slice(0, options.count).map((item, idx) => ({
+        title: item.title || `Result ${idx + 1}`,
+        url: item.url || '',
+        snippet: item.content?.substring(0, 300) || '',
+        source: item.source || extractDomain(item.url || ''),
+      }));
+
+      return { query, results };
+    },
+  };
+}
+
 // --- Provider factory ---
 
-export type WebSearchProviderType = 'bing' | 'brave' | 'tavily' | 'searxng';
+export type WebSearchProviderType = 'bing' | 'brave' | 'tavily' | 'searxng' | 'baidu';
 
 export function createSearchProvider(
   providerType: WebSearchProviderType,
   apiKey: string,
+  _secretKey?: string,
   baseUrl?: string,
+  baiduSearchMode?: BaiduSearchMode,
 ): SearchProvider {
   switch (providerType) {
     case 'bing':
@@ -250,5 +343,7 @@ export function createSearchProvider(
       return createTavilyProvider(apiKey);
     case 'searxng':
       return createSearXNGProvider(baseUrl || '');
+    case 'baidu':
+      return createBaiduProvider(apiKey, baiduSearchMode || 'smart');
   }
 }

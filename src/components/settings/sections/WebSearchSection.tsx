@@ -6,7 +6,8 @@ import { Select } from '@/components/ui/select';
 import { open } from '@tauri-apps/plugin-shell';
 import type { WebSearchProviderType } from '@/core/search/providers';
 
-const SEARCH_PROVIDERS: { id: WebSearchProviderType; labelKey: 'webSearchProviderBing' | 'webSearchProviderBrave' | 'webSearchProviderTavily' | 'webSearchProviderSearXNG'; signupUrl?: string }[] = [
+const SEARCH_PROVIDERS: { id: WebSearchProviderType; labelKey: 'webSearchProviderBaidu' | 'webSearchProviderBing' | 'webSearchProviderBrave' | 'webSearchProviderTavily' | 'webSearchProviderSearXNG'; signupUrl?: string }[] = [
+  { id: 'baidu', labelKey: 'webSearchProviderBaidu', signupUrl: 'https://cloud.baidu.com/' },
   { id: 'tavily', labelKey: 'webSearchProviderTavily', signupUrl: 'https://tavily.com/' },
   { id: 'brave', labelKey: 'webSearchProviderBrave', signupUrl: 'https://brave.com/search/api/' },
   { id: 'searxng', labelKey: 'webSearchProviderSearXNG', signupUrl: 'https://docs.searxng.org/' },
@@ -19,14 +20,17 @@ export function WebSearchForm() {
     webSearchProvider,
     webSearchApiKey,
     webSearchBaseUrl,
+    baiduSearchMode,
     setWebSearchProvider,
     setWebSearchApiKey,
     setWebSearchBaseUrl,
+    setBaiduSearchMode,
   } = useSettingsStore();
   const { t } = useI18n();
   const [showKey, setShowKey] = useState(false);
 
   const isSearXNG = webSearchProvider === 'searxng';
+  const isBaidu = webSearchProvider === 'baidu';
   const currentProvider = SEARCH_PROVIDERS.find((p) => p.id === webSearchProvider);
 
   return (
@@ -76,6 +80,26 @@ export function WebSearchForm() {
             </button>
           </div>
           <p className="text-xs text-[#888579]">{t.settings.webSearchApiKeyDesc}</p>
+        </div>
+      )}
+
+      {/* Baidu Search Mode */}
+      {isBaidu && (
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-[#29261b]">搜索模式</label>
+          <Select
+            value={baiduSearchMode}
+            onChange={(value) => setBaiduSearchMode(value as 'smart' | 'web')}
+            options={[
+              { value: 'smart', label: '智能搜索（AI 总结）' },
+              { value: 'web', label: '网页搜索（仅返回结果）' },
+            ]}
+          />
+          <p className="text-xs text-[#888579]">
+            {baiduSearchMode === 'smart'
+              ? '智能搜索：AI 会总结搜索结果，回答更精准，但消耗更多配额'
+              : '网页搜索：直接返回搜索结果列表，更便宜'}
+          </p>
         </div>
       )}
 

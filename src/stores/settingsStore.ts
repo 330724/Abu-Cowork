@@ -223,6 +223,7 @@ interface SettingsState {
   webSearchProvider: WebSearchProviderType;
   webSearchApiKey: string;
   webSearchBaseUrl: string;
+  baiduSearchMode: 'smart' | 'web';
   // New: Language setting
   language: LanguageSetting;
   // System settings tab
@@ -288,6 +289,7 @@ interface SettingsActions {
   setUseBuiltinWebSearch: (enabled: boolean) => void;
   setWebSearchProvider: (provider: WebSearchProviderType) => void;
   setWebSearchApiKey: (key: string) => void;
+  setBaiduSearchMode: (mode: 'smart' | 'web') => void;
   setWebSearchBaseUrl: (url: string) => void;
   // Language action
   setLanguage: (lang: LanguageSetting) => void;
@@ -394,6 +396,7 @@ export const useSettingsStore = create<SettingsStore>()(
       webSearchProvider: 'brave' as WebSearchProviderType,
       webSearchApiKey: '',
       webSearchBaseUrl: '',
+      baiduSearchMode: 'smart',
       // Language default
       language: 'system' as LanguageSetting,
       // System settings defaults
@@ -446,8 +449,9 @@ export const useSettingsStore = create<SettingsStore>()(
       // Web search actions
       setUseBuiltinWebSearch: (useBuiltinWebSearch) => set({ useBuiltinWebSearch }),
       setWebSearchProvider: (webSearchProvider) => set({ webSearchProvider }),
-      setWebSearchApiKey: (webSearchApiKey) => set({ webSearchApiKey }),
-      setWebSearchBaseUrl: (webSearchBaseUrl) => set({ webSearchBaseUrl }),
+      setWebSearchApiKey: (webSearchApiKey: string) => set({ webSearchApiKey }),
+      setBaiduSearchMode: (mode: 'smart' | 'web') => set({ baiduSearchMode: mode }),
+      setWebSearchBaseUrl: (webSearchBaseUrl: string) => set({ webSearchBaseUrl }),
       // Language action - updates both store and i18n module
       setLanguage: (lang) => {
         setLanguage(lang);
@@ -520,10 +524,13 @@ export const useSettingsStore = create<SettingsStore>()(
     }),
     {
       name: 'abu-settings',
-      version: 6,
+      version: 8,
       migrate: (persisted: unknown, version: number) => {
         const state = persisted as Record<string, unknown>;
-        if (version < 6) {
+        if (version < 8) {
+          if (state.baiduSearchMode === undefined) state.baiduSearchMode = 'smart';
+        }
+        if (version < 7) {
           if (state.allowSkillCommands === undefined) state.allowSkillCommands = true;
         }
         if (version < 5) {
@@ -609,6 +616,7 @@ export const useSettingsStore = create<SettingsStore>()(
         webSearchProvider: state.webSearchProvider,
         webSearchApiKey: state.webSearchApiKey,
         webSearchBaseUrl: state.webSearchBaseUrl,
+        baiduSearchMode: state.baiduSearchMode,
         sidebarCollapsed: state.sidebarCollapsed,
         rightPanelCollapsed: state.rightPanelCollapsed,
         disabledSkills: state.disabledSkills,

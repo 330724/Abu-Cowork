@@ -923,6 +923,7 @@ const webSearchTool: ToolDefinition = {
       const providerType = state.webSearchProvider || 'bing';
       const apiKey = state.webSearchApiKey;
       const baseUrl = state.webSearchBaseUrl;
+      const baiduSearchMode = state.baiduSearchMode;
 
       // SearXNG doesn't need API key
       if (providerType !== 'searxng' && !apiKey) {
@@ -933,7 +934,7 @@ const webSearchTool: ToolDefinition = {
       }
 
       const { createSearchProvider } = await import('../search/providers');
-      const provider = createSearchProvider(providerType, apiKey, baseUrl);
+      const provider = createSearchProvider(providerType, apiKey, baseUrl, undefined, baiduSearchMode);
       const response = await provider.search(query, { count, market, freshness });
 
       if (response.results.length === 0) {
